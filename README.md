@@ -10,6 +10,7 @@ Google Ecommerce Analytics module allows you to use the newly launched feature o
 ## 1.1 (August 2016)
 * Captures Product Impressions, Add to Cart & Product Clicks events
 * Product Performance Report
+* Product List Performance Report
 * Captures Promo Views and Promo Clicks events
 * Internal Promotion Report
 
