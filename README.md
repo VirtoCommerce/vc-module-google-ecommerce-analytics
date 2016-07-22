@@ -4,7 +4,7 @@ Google Ecommerce Analytics module allows you to use the newly launched feature o
 # Roadmap
 ## 1.0 (July 2016)
 * Quick & Easy installation
-* Supports Enhanced Ecommerce tracking
+* Supports Enhanced Ecommerce tracking with Google Tag Manager
 * Sales Performance Report
 
 ## 1.1 (August 2016)
