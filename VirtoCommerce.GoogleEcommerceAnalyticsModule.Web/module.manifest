@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<module>
+    <id>VirtoCommerce.GoogleEcommerceAnalytics</id>
+    <version>1.0.0</version>
+    <platformVersion>2.11.4</platformVersion>
+    <dependencies>
+        <dependency id="VirtoCommerce.Core" version="2.14.0" />
+    </dependencies>
+
+    <title>Ecommerce Google Analytics module</title>
+    <description>Provides integration between Ecommerce feature of Google Analytics and VirtoCommerce.</description>
+    <authors>
+        <author>Virto Commerce</author>
+    </authors>
+    <owners>
+        <owner>Virto Commerce</owner>
+    </owners>
+    <projectUrl>http://virtocommerce.com/</projectUrl>
+    <iconUrl>Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Content/logo.png</iconUrl>
+    <releaseNotes>First version.</releaseNotes>
+    <copyright>Copyright © 2011-2016 Virto Commerce. All rights reserved</copyright>
+    <tags>customer</tags>
+
+    <assemblyFile>VirtoCommerce.GoogleEcommerceAnalyticsModule.dll</assemblyFile>
+    <moduleType>VirtoCommerce.GoogleEcommerceAnalyticsModule.Module, VirtoCommerce.GoogleEcommerceAnalyticsModule</moduleType>
+
+    <scripts>
+        <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
+    </scripts>
+</module>

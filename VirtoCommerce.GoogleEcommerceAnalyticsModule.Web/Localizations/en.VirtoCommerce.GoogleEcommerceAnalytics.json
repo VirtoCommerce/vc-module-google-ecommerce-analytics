@@ -1,0 +1,17 @@
+﻿{
+  "google-ecommerce-analytics": {
+    "blades": {
+      "store-settings": {
+        "labels": {
+          "note": "Ecommerce Google Analytics module allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce."
+        }
+      }
+    },
+    "widgets": {
+      "store-settings": {
+        "title": "Ecommerce Google Analytics",
+        "blade-subtitle": "Ecommerce Google Analytics"
+      }
+	}
+  }
+}
