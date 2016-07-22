@@ -19,12 +19,28 @@
     <iconUrl>Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Content/logo.png</iconUrl>
     <releaseNotes>First version.</releaseNotes>
     <copyright>Copyright © 2011-2016 Virto Commerce. All rights reserved</copyright>
-    <tags>customer</tags>
+    <tags>analytics</tags>
 
-    <assemblyFile>VirtoCommerce.GoogleEcommerceAnalyticsModule.dll</assemblyFile>
-    <moduleType>VirtoCommerce.GoogleEcommerceAnalyticsModule.Module, VirtoCommerce.GoogleEcommerceAnalyticsModule</moduleType>
-
+    <assemblyFile>VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.dll</assemblyFile>
+    <moduleType>VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Module, VirtoCommerce.GoogleEcommerceAnalyticsModule.Web</moduleType>
     <scripts>
         <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
     </scripts>
+
+    <settings>
+      <group name="General">
+        <setting>
+          <name>GoogleEcommerceAnalytics.EnableTracking</name>
+          <valueType>boolean</valueType>
+          <title>Enable Enhanced Ecommerce tracking</title>
+          <description>Flag activated Enhanced Ecommerce tracking in store</description>
+        </setting>
+        <setting>
+          <name>GoogleEcommerceAnalytics.GoogleTagManagerId</name>
+          <valueType>string</valueType>
+          <title>Google Tag Manager ID</title>
+          <description>GTM-XXXXXX</description>
+        </setting>
+      </group>
+    </settings>
 </module>

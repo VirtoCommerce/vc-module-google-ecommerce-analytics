@@ -3,7 +3,8 @@
     "blades": {
       "store-settings": {
         "labels": {
-          "note": "Ecommerce Google Analytics module allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce."
+          "note": "Ecommerce Google Analytics module allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce.",
+          "is-active": "Is active"
         }
       }
     },
