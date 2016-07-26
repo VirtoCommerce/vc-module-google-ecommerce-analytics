@@ -1,36 +1,35 @@
 ﻿angular.module('virtoCommerce.googleEcommerceAnalyticsModule')
-.controller('virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController', ['$scope', 'platformWebApp.bladeNavigationService', function ($scope, bladeNavigationService) {
+.controller('virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController', ['$scope', 'platformWebApp.bladeNavigationService', 'virtoCommerce.googleEcommerceAnalyticsModule.settings', function ($scope, bladeNavigationService, storeSettings) {
+    var blade = $scope.blade;
 
-    function initializeBlade(data) {
-        $scope.blade.currentEntities = data;
-        $scope.blade.isLoading = false;
-    };
+    blade.initialize = function () {
+        blade.isLoading = true;
+        $scope.blade.currentSettings = { storeId: blade.storeId };
 
-    $scope.selectNode = function (node) {
-        $scope.selectedNodeId = node.code;
-
-        var newBlade = {
-            id: 'googleEcommerceStoreSettings',
-            data: node,
-            title: $scope.blade.title,
-            subtitle: 'google-ecommerce-analytics.widgets.store-settings.blade-subtitle',
-            controller: 'virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController',
-            template: 'Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Scripts/blades/storeSettings.tpl.html'
-        };
-        bladeNavigationService.showBlade(newBlade, $scope.blade);
-    };
-
-    $scope.sortableOptions = {
-        stop: function (e, ui) {
-            for (var i = 0; i < $scope.blade.currentEntities.length; i++) {
-                $scope.blade.currentEntities[i].priority = i + 1;
+        storeSettings.get({ storeId: blade.storeId }, function (data) {
+            if (data.id) {
+                $scope.blade.currentSettings = data;
             }
+            $scope.blade.isLoading = false;
         },
-        axis: 'y',
-        cursor: "move"
+        function (error) { bladeNavigationService.setError('Error ' + error.status, $scope.blade); });
     };
 
-    $scope.blade.headIcon = 'fa-archive';
+    $scope.saveChanges = function() {
+        blade.isLoading = true;
+        storeSettings.update({ storeId: blade.storeId }, blade.currentSettings, function() {
+                $scope.bladeClose();
+            },
+            function (error) {
+                bladeNavigationService.setError('Error ' + error.status, blade);
+            });
+    };
 
-    $scope.$watch('blade.parentBlade.currentEntity.paymentMethods', initializeBlade);
+    $scope.cancelChanges = function () {
+        $scope.bladeClose();
+    }
+
+    $scope.blade.headIcon = 'fa-database';
+
+    blade.initialize();
 }]);

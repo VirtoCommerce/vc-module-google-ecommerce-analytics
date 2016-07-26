@@ -4,7 +4,11 @@
       "store-settings": {
         "labels": {
           "note": "Ecommerce Google Analytics module allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce.",
-          "is-active": "Is active"
+          "is-active": "Is active",
+          "gtm-id": "Google Tag Manager Id"
+        },
+        "placeholders": {
+          "gtm-id" :  "Enter Google Tag Manager Id"
         }
       }
     },

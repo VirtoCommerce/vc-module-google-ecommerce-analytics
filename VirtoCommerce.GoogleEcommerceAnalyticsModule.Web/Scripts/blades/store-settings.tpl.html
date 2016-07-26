@@ -1,11 +1,24 @@
 ﻿<div class="blade-static __bottom" ng-include="'$(Platform)/Scripts/common/templates/ok-cancel2.tpl.html'"></div>
-<div class="blade-content __medium-wide">
+<div class="blade-content">
     <div class="blade-inner">
         <div class="inner-block">
-            <p class="note">{{ 'google-ecommerce-analytics.blades.store-settings.labels.note' | translate }}</p>
-            <div class="table-wrapper">
-                
-            </div>
+            <form class="form" name="detailForm">
+                <div class="form-group">
+                    <label class="form-label">{{ 'google-ecommerce-analytics.blades.store-settings.labels.is-active' | translate }}</label>
+                    <div class="form-input">
+                        <label class="form-label __switch">
+                            <input type="checkbox" ng-model="blade.currentSettings.isActive"/>
+                            <span class="switch"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ 'google-ecommerce-analytics.blades.store-settings.labels.gtm-id' | translate }}</label>
+                    <div class="form-input">
+                        <input ng-model="blade.currentSettings.googleTagManagerId" type="text" placeholder="{{ 'google-ecommerce-analytics.blades.store-settings.placeholders.gtm-id' | translate }}">
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>

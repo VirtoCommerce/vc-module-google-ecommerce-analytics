@@ -34,7 +34,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
             {
                 if (!settings.IsTransient())
                 {
-                    var existList = repository.GetSettingsByStoreId(settings.Id);
+                    var existList = repository.GetSettingsByStoreId(settings.StoreId);
                     if (existList != null)
                     {
                         changeTracker.Attach(existList);
