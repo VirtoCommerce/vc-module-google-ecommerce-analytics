@@ -10,13 +10,13 @@
     <title>Ecommerce Google Analytics module</title>
     <description>Provides integration between Ecommerce feature of Google Analytics and VirtoCommerce.</description>
     <authors>
-        <author>Virto Commerce</author>
+        <author>Alexey Antonov</author>
     </authors>
     <owners>
         <owner>Virto Commerce</owner>
     </owners>
-    <projectUrl>http://virtocommerce.com/</projectUrl>
-    <iconUrl>Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Content/logo.png</iconUrl>
+    <projectUrl>https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics</projectUrl>
+    <iconUrl>https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/raw/master/VirtoCommerce.GoogleEcommerceAnalyticsModule.Web/Content/logo.png</iconUrl>
     <releaseNotes>First version.</releaseNotes>
     <copyright>Copyright © 2011-2016 Virto Commerce. All rights reserved</copyright>
     <tags>analytics</tags>
