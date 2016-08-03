@@ -128,7 +128,6 @@
     <Content Include="Scripts\blades\store-settings.js" />
     <Content Include="Scripts\blades\store-settings.tpl.html" />
     <Content Include="Scripts\google-ecommerce-analytics.js" />
-    <Content Include="Scripts\resources\contentResource.js" />
     <Content Include="Scripts\widgets\store-settings-widget.js" />
     <Content Include="Scripts\widgets\store-settings-widget.tpl.html" />
     <Content Include="Localizations\en.VirtoCommerce.GoogleEcommerceAnalytics.json" />
@@ -148,23 +147,12 @@
     <None Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Controllers\Api\ContentBaseController.cs" />
-    <Compile Include="Controllers\Api\StoreSettingsController.cs" />
-    <Compile Include="Converters\StoreSettingsConverter.cs" />
-    <Compile Include="Models\StoreSettings.cs" />
     <Compile Include="Module.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Security\GoogleEcommerceAnalyticsPredefinedPermissions.cs" />
-    <Compile Include="Security\GoogleEcommerceAnalyticsScopeObject.cs" />
-    <Compile Include="Security\GoogleEcommerceAnalyticsStoreScope.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj">
-      <Project>{8D58D90F-7B63-4D47-AA59-CDD4A5350B38}</Project>
-      <Name>VirtoCommerce.GoogleEcommerceAnalyticsModule.Data</Name>
-    </ProjectReference>
+    <Folder Include="Security\" />
   </ItemGroup>
-  <ItemGroup />
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>

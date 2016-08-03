@@ -26,14 +26,21 @@
     <scripts>
         <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
     </scripts>
-  
-    <permissions>
-      <group name="Content">
-        <permission id="ga:access" name="Open google ecommerce analytics settings" description=""/>
-        <permission id="ga:create" name="Create google ecommerce analytics settings" description=""/>
-        <permission id="ga:read" name="View google ecommerce analytics settings" description=""/>
-        <permission id="ga:update" name="Update google ecommerce analytics settings" description=""/>
-        <permission id="ga:delete" name="Delete google ecommerce analytics settings" description=""/>
+
+    <settings>
+      <group name="Google Ecommerce Analytics">
+        <setting>
+          <name>GoogleEcommerceAnalytics.EnableTracking</name>
+          <valueType>boolean</valueType>
+          <title>Is Active</title>
+          <description>Flag activated Enhanced Ecommerce tracking in store</description>
+        </setting>
+        <setting>
+          <name>GoogleEcommerceAnalytics.GoogleTagManagerId</name>
+          <valueType>string</valueType>
+          <title>Google Tag Manager ID</title>
+          <description>GTM-XXXXXX</description>
+        </setting>
       </group>
-    </permissions>
+    </settings>
 </module>
