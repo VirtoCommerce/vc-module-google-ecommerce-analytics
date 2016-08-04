@@ -1,28 +1,27 @@
 ﻿angular.module('virtoCommerce.googleEcommerceAnalyticsModule')
-.controller('virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController', ['$scope', 'platformWebApp.bladeNavigationService', function ($scope, bladeNavigationService) {
+.controller('virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController', ['$scope', function ($scope) {
     var blade = $scope.blade;
+    blade.updatePermission = 'platform:setting:update';
 
-    blade.initialize = function () {
+    function initializeBlade(data) {
+        blade.currentEntities = angular.copy(data);
+        blade.origEntity = data;
+        blade.refresh();
         blade.isLoading = false;
-        $scope.blade.currentSettings = { storeId: blade.storeId };
-
-        //storeSettings.get({ storeId: blade.storeId }, function (data) {
-        //    if (data.id) {
-        //        $scope.blade.currentSettings = data;
-        //    }
-        //    $scope.blade.isLoading = false;
-        //},
-        //function (error) { bladeNavigationService.setError('Error ' + error.status, $scope.blade); });
     };
 
-    $scope.saveChanges = function() {
-        blade.isLoading = false;
-        //storeSettings.update({ storeId: blade.storeId }, blade.currentSettings, function() {
-        //        $scope.bladeClose();
-        //    },
-        //    function (error) {
-        //        bladeNavigationService.setError('Error ' + error.status, blade);
-        //    });
+    blade.refresh = function() {
+        blade.enableTracking = _.find(blade.currentEntities, function(x) { return x.name === 'GoogleEcommerceAnalytics.EnableTracking' });
+        blade.googleTagManagerId = _.find(blade.currentEntities, function(x) { return x.name === 'GoogleEcommerceAnalytics.GoogleTagManagerId' });
+    };
+
+    function isDirty() {
+        return !angular.equals(blade.currentEntities, blade.origEntity) && blade.hasUpdatePermission();
+    }
+
+    $scope.saveChanges = function () {
+        angular.copy(blade.currentEntities, blade.origEntity);
+        $scope.bladeClose();
     };
 
     $scope.cancelChanges = function () {
@@ -31,5 +30,17 @@
 
     $scope.blade.headIcon = 'fa-database';
 
-    blade.initialize();
+    blade.toolbarCommands = [
+        {
+            name: "platform.commands.reset", icon: 'fa fa-undo',
+            executeMethod: function () {
+                angular.copy(blade.origEntity, blade.currentEntities);
+                blade.refresh();
+            },
+            canExecuteMethod: isDirty,
+            permission: blade.updatePermission
+        }
+    ];
+
+    $scope.$watch('blade.parentBlade.currentEntity.settings', initializeBlade);
 }]);

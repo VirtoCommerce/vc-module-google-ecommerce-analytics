@@ -7,7 +7,7 @@
                     <label class="form-label">{{ 'google-ecommerce-analytics.blades.store-settings.labels.is-active' | translate }}</label>
                     <div class="form-input">
                         <label class="form-label __switch">
-                            <input type="checkbox" ng-model="blade.currentSettings.isActive"/>
+                            <input type="checkbox" ng-model="blade.enableTracking.value"/>
                             <span class="switch"></span>
                         </label>
                     </div>
@@ -15,7 +15,7 @@
                 <div class="form-group">
                     <label class="form-label">{{ 'google-ecommerce-analytics.blades.store-settings.labels.gtm-id' | translate }}</label>
                     <div class="form-input">
-                        <input ng-model="blade.currentSettings.googleTagManagerId" type="text" placeholder="{{ 'google-ecommerce-analytics.blades.store-settings.placeholders.gtm-id' | translate }}">
+                        <input ng-model="blade.googleTagManagerId.value" type="text" placeholder="{{ 'google-ecommerce-analytics.blades.store-settings.placeholders.gtm-id' | translate }}">
                     </div>
                 </div>
             </form>

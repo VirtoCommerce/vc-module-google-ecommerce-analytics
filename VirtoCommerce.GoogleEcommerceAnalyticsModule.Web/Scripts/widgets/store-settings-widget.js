@@ -5,7 +5,6 @@
     $scope.openBlade = function () {
         var newBlade = {
             id: "storeChildBlade",
-            storeId: blade.currentEntityId,
             title: blade.title,
             subtitle: 'google-ecommerce-analytics.widgets.store-settings.blade-subtitle',
             controller: 'virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController',
