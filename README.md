@@ -34,7 +34,8 @@ Update the Variable named {{GA Property ID}} with your Google Analytics Tracking
 Use the Preview options to test this container on your own site. Try testing each of the events to make sure they’re working properly. If everything looks good, go ahead and publish!
 
 ### 5. Installing the module
-Manually: download module zip package from https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/releases. In VC Manager go to Configuration -> Modules -> Advanced -> upload module package -> Install.
+* Automatically: in VC Manager go to Configuration -> Modules -> Store module -> Install
+* Manually: download module zip package from https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/releases. In VC Manager go to Configuration -> Modules -> Advanced -> upload module package -> Install.
 
 ### 6. Download Liquid snippet file
 Download the snippet file <a href="">vc-google-ecommerce-analytics.liquid</a> and copy it to snippet folder \VirtoCommerce.Storefront\App_Data\Themes\\{YourTheme}\snippets.
