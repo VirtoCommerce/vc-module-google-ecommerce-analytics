@@ -16,6 +16,39 @@ Google Ecommerce Analytics module allows you to use the newly launched feature o
 
 ![ecommerce-google-analytics-module-img1](https://cloud.githubusercontent.com/assets/7644848/17057938/bfd5cd42-501d-11e6-9a8a-9b50051d9178.PNG)
 
+# Setup and installation
+
+### 1. Download Google Tag Manager Container File
+Download the <a href="https://raw.githubusercontent.com/VirtoCommerce/vc-module-google-ecommerce-analytics/master/VirtoCommerce.GoogleEcommerceAnalyticsModule.Web/Content/gtm-virtocommerce_v1.json">container JSON file</a>.
+
+### 2. Import JSON File into GTM
+Log into your own <a href="http://www.google.com/tagmanager/">Google Tag Manager</a> container and head to the Admin section of the site. Under Container options, select Import Container.
+
+### 3. Update With Your Own Tracking ID
+Update the Variable named {{GA Property ID}} with your Google Analytics Tracking ID.
+
+### 4. Preview & Publish
+Use the Preview options to test this container on your own site. Try testing each of the events to make sure they’re working properly. If everything looks good, go ahead and publish!
+
+### 5. Installing the module
+Manually: download module zip package from https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/releases. In VC Manager go to Configuration -> Modules -> Advanced -> upload module package -> Install.
+
+### 6. Download Liquid snippet file
+Download the snippet file <a href="">vc-google-ecommerce-analytics.liquid</a> and copy it to snippet folder \VirtoCommerce.Storefront\App_Data\Themes\\{YourTheme}\snippets.
+
+### 7. Include snippet into your themes
+Paste this code {% include 'vc-google-ecommerce-analytics' %} into your themes so that it appears immediately after the opening \<body\> tag.
+
+![image](https://cloud.githubusercontent.com/assets/7644848/17433536/92749548-5b05-11e6-8762-2a2e194e8e4e.png)
+
+### 8. Settings
+In VC Manager go to Browse -> STORES -> {YourStore} -> Ecommerce Google Analytics. Enable the plugin and insert your Google Tag Manager Id.
+
+![image](https://cloud.githubusercontent.com/assets/7644848/17435851/bcf1fa28-5b13-11e6-8d24-8fd3b757051c.png)
+
+### 9. Finish
+To verify the correct integration you can use the Chrome extension <a href="https://chrome.google.com/webstore/detail/tag-assistant-by-google/kejbdjndbnbjgmefkgdddjlbokphdefk">Tag Assistant</a> from Google. 
+
 # License
 Copyright (c) Virtosoftware Ltd.  All rights reserved.
 
