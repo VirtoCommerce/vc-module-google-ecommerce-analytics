@@ -22,7 +22,7 @@ Google Ecommerce Analytics module allows you to use the newly launched feature o
 # Setup and installation
 
 ### 1. Download Google Tag Manager Container File
-Download the <a href="https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/raw/master/VirtoCommerce.Storefront/App_Data/Themes/default/snippets/vc-google-ecommerce-analytics.liquid">container JSON file</a>.
+Download the <a href="https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/raw/master/VirtoCommerce.GoogleEcommerceAnalyticsModule.Web/Content/gtm-virtocommerce_v1.json">container JSON file</a>.
 
 ### 2. Import JSON File into GTM
 Log into your own <a href="http://www.google.com/tagmanager/">Google Tag Manager</a> container and head to the Admin section of the site. Under Container options, select Import Container.
