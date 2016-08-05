@@ -1,4 +1,4 @@
-﻿{% if shop.metafields.settings['GoogleEcommerceAnalytics.EnableTracking'] %}
+{% if shop.metafields.settings['GoogleEcommerceAnalytics.EnableTracking'] %}
 <!-- Google Tag Manager -->
 <noscript>
   <iframe src="//www.googletagmanager.com/ns.html?id={{ shop.metafields.settings['GoogleEcommerceAnalytics.GoogleTagManagerId'] }}" height="0" width="0" style="display:none;visibility:hidden"></iframe>
@@ -14,24 +14,6 @@
 
 {% case template %}
 {% when 'index' %}
-<script>
-dataLayer.push({
-  'ecommerce': {
-    'currencyCode': '{{current_currency.code}}',
-    'impressions': [
-      {% for product in collection.products %}{
-        'name': '{{product.title}}',
-        'id': '{{product.id}}',
-        'price': '{{ product.price_with_tax  | divided_by: 100 | replace: ',', '.' }}',
-        'brand': '{{ product.vendor }}',
-        'list': 'Home page',
-        'position': {{ forloop.index }}
-      },
-      {% endfor %}
-    ]
-  }
-});
-</script>
 {% when 'collection' %}
 <script>
 dataLayer.push({
@@ -72,9 +54,7 @@ dataLayer.push({
 });
 </script>
 {% when 'cart' %}
-<!-- {{template}} page-->
 {% when 'checkout' %}
-<!-- {{template}} page-->
 {% when 'thanks' %}
 <script>
   dataLayer.push({
