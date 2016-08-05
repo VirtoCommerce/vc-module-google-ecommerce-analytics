@@ -1,14 +1,17 @@
 # Google Ecommerce Analytics module
 Google Ecommerce Analytics module allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce. You can track the user behavior across your e-commerce store starting from product views to thank you page.
 
-# Roadmap
-## 1.0 (July 2016)
+# Version History
+## 1.0 
 * Quick & Easy installation
 * Supports Enhanced Ecommerce tracking with Google Tag Manager
-* Sales Performance Report
+* Measuring Product Impressions
+* Measuring Views of Product Details
+* Measuring Purchases
 
+# Roadmap
 ## 1.1 (August 2016)
-* Captures Product Impressions, Add to Cart & Product Clicks events
+* Captures Add to Cart & Product Clicks events
 * Product Performance Report
 * Product List Performance Report
 * Captures Promo Views and Promo Clicks events
