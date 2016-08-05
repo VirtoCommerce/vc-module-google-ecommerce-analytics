@@ -38,7 +38,7 @@ Use the Preview options to test this container on your own site. Try testing eac
 * Manually: download module zip package from https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/releases. In VC Manager go to Configuration -> Modules -> Advanced -> upload module package -> Install.
 
 ### 6. Download Liquid snippet file
-Download the snippet file <a href="">vc-google-ecommerce-analytics.liquid</a> and copy it to snippet folder \VirtoCommerce.Storefront\App_Data\Themes\\{YourTheme}\snippets.
+Download the snippet file <a href="https://raw.githubusercontent.com/VirtoCommerce/vc-module-google-ecommerce-analytics/master/VirtoCommerce.Storefront/App_Data/Themes/default/snippets/vc-google-ecommerce-analytics.liquid">vc-google-ecommerce-analytics.liquid</a> and copy it to snippet folder \VirtoCommerce.Storefront\App_Data\Themes\\{YourTheme}\snippets.
 
 ### 7. Include snippet into your themes
 Paste this code {% include 'vc-google-ecommerce-analytics' %} into your themes so that it appears immediately after the opening \<body\> tag.
