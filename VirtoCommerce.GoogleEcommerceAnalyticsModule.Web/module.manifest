@@ -41,6 +41,12 @@
           <title>Google Tag Manager ID</title>
           <description>GTM-XXXXXX</description>
         </setting>
+        <setting>
+          <name>GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId</name>
+          <valueType>string</valueType>
+          <title>Google Analytics Tracking ID</title>
+          <description>UA-XXXXXXXX-X</description>
+        </setting>
       </group>
     </settings>
 </module>

@@ -1,8 +1,10 @@
 ﻿using System;
-using System.Configuration;
 using System.Linq;
-using VirtoCommerce.Platform.Core.Modularity;
 using Microsoft.Practices.Unity;
+using VirtoCommerce.Domain.Order.Events;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Ovservers;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
+using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
@@ -20,6 +22,8 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
 
         public override void Initialize()
         {
+            _container.RegisterType<IObserver<OrderChangedEvent>, OrderChangedObserver>("OrderChangedObserver");
+            _container.RegisterType<IGoogleAnalyticsTransactionManager, GoogleAnalyticsTransactionManager>();
         }
 
         public override void PostInitialize()
