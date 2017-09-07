@@ -15,7 +15,11 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Ovservers
 
         public void OnNext(OrderChangedEvent value)
         {
-            if (value.ChangeState == Platform.Core.Common.EntryState.Modified)
+			if (value.ChangeState == Platform.Core.Common.EntryState.Added)
+			{
+				_gaTransactionManager.CreateTransaction(value.ModifiedOrder);
+			}
+			else if (value.ChangeState == Platform.Core.Common.EntryState.Modified)
             {
                 if (value.ModifiedOrder.Status == "Cancelled")
                 {

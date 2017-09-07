@@ -16,7 +16,44 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
             _trackingId = settingsManager.GetValue("GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId", string.Empty);
         }
 
-        public void RevertTransaction(CustomerOrder order)
+		public void CreateTransaction(CustomerOrder order)
+		{
+			if (order == null)
+			{
+				throw new ArgumentNullException(nameof(order));
+			}
+
+			var address = order.Addresses.FirstOrDefault(a => a.AddressType == Domain.Commerce.Model.AddressType.Shipping);
+			if (address == null)
+			{
+				address = order.Addresses.FirstOrDefault(a => a.AddressType == Domain.Commerce.Model.AddressType.Billing);
+			}
+
+			using (var tracker = new SimpleTracker(_trackingId, string.Empty))
+			{
+				tracker.TrackTransactionAsync(
+					orderId: order.Number,
+					storeName: string.Empty,
+					total: (order.Total).ToString(CultureInfo.InvariantCulture),
+					tax: (order.TaxTotal).ToString(CultureInfo.InvariantCulture),
+					shipping: (order.ShippingTotal).ToString(CultureInfo.InvariantCulture),
+					city: address?.City,
+					region: address?.RegionName,
+					country: address?.CountryName);
+				foreach (var lineItem in order.Items)
+				{
+					tracker.TrackTransactionItemAsync(
+						orderId: order.Number,
+						productId: lineItem.ProductId,
+						productName: lineItem.Name,
+						productVariation: lineItem.Sku,
+						productPrice: lineItem.PlacedPrice.ToString(CultureInfo.InvariantCulture),
+						quantity: (lineItem.Quantity).ToString(CultureInfo.InvariantCulture));
+				}
+			}
+		}
+
+		public void RevertTransaction(CustomerOrder order)
         {
             if (order == null)
             {
