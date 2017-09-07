@@ -18,7 +18,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
             _trackingId = settingsManager.GetValue("GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId", string.Empty);
         }
 
-		public void CreateTransaction(CustomerOrder order)
+		public async Task CreateTransaction(CustomerOrder order)
 		{
 			if (order == null)
 			{
@@ -57,12 +57,13 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 						quantity: (lineItem.Quantity).ToString(CultureInfo.InvariantCulture));
 					list.Add(lineItemTask);
 				}
-				Task.WaitAll(list.ToArray());
+
+				await Task.WhenAll(list.ToArray());
 			}
 		}
 
 
-		public void RevertTransaction(CustomerOrder order)
+		public async Task RevertTransaction(CustomerOrder order)
         {
             if (order == null)
             {
@@ -103,7 +104,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 					list.Add(lineItemTask);
 				}
 
-				Task.WaitAll(list.ToArray());
+				await Task.WhenAll(list.ToArray());
             }
         }
     }
