@@ -55,8 +55,9 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 						productVariation: lineItem.Sku,
 						productPrice: lineItem.PlacedPrice.ToString(CultureInfo.InvariantCulture),
 						quantity: (lineItem.Quantity).ToString(CultureInfo.InvariantCulture));
-					Task.WaitAll(list.ToArray());
+					list.Add(lineItemTask);
 				}
+				Task.WaitAll(list.ToArray());
 			}
 		}
 
