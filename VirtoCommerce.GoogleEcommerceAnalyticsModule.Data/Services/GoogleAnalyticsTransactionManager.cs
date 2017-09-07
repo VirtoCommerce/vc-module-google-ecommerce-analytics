@@ -4,6 +4,8 @@ using System.Linq;
 using GoogleAnalyticsTracker.Simple;
 using VirtoCommerce.Domain.Order.Model;
 using VirtoCommerce.Platform.Core.Settings;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 {
@@ -31,7 +33,9 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 
 			using (var tracker = new SimpleTracker(_trackingId, string.Empty))
 			{
-				tracker.TrackTransactionAsync(
+				var list = new List<Task>();
+
+				var task = tracker.TrackTransactionAsync(
 					orderId: order.Number,
 					storeName: string.Empty,
 					total: (order.Total).ToString(CultureInfo.InvariantCulture),
@@ -40,18 +44,22 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 					city: address?.City,
 					region: address?.RegionName,
 					country: address?.CountryName);
+				list.Add(task);
+
 				foreach (var lineItem in order.Items)
 				{
-					tracker.TrackTransactionItemAsync(
+					var lineItemTask = tracker.TrackTransactionItemAsync(
 						orderId: order.Number,
 						productId: lineItem.ProductId,
 						productName: lineItem.Name,
 						productVariation: lineItem.Sku,
 						productPrice: lineItem.PlacedPrice.ToString(CultureInfo.InvariantCulture),
 						quantity: (lineItem.Quantity).ToString(CultureInfo.InvariantCulture));
+					Task.WaitAll(list.ToArray());
 				}
 			}
 		}
+
 
 		public void RevertTransaction(CustomerOrder order)
         {
@@ -68,7 +76,9 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 
             using (var tracker = new SimpleTracker(_trackingId, string.Empty))
             {
-                tracker.TrackTransactionAsync(
+				var list = new List<Task>();
+
+				var task = tracker.TrackTransactionAsync(
                     orderId: order.Number,
                     storeName: string.Empty,
                     total: (-1 * order.Total).ToString(CultureInfo.InvariantCulture),
@@ -77,16 +87,22 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
                     city: address?.City,
                     region: address?.RegionName,
                     country: address?.CountryName);
-                foreach (var lineItem in order.Items)
+				list.Add(task);
+
+
+				foreach (var lineItem in order.Items)
                 {
-                    tracker.TrackTransactionItemAsync(
+                    var lineItemTask = tracker.TrackTransactionItemAsync(
                         orderId: order.Number,
                         productId: lineItem.ProductId,
                         productName: lineItem.Name,
                         productVariation: lineItem.Sku,
                         productPrice: lineItem.PlacedPrice.ToString(CultureInfo.InvariantCulture),
                         quantity: (-1 * lineItem.Quantity).ToString(CultureInfo.InvariantCulture));
-                }
+					list.Add(lineItemTask);
+				}
+
+				Task.WaitAll(list.ToArray());
             }
         }
     }
