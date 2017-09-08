@@ -22,8 +22,10 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
 
         public override void Initialize()
         {
+			_container.RegisterType<IGoogleAnalyticsSettingsManager, GoogleAnalyticsSettingsManager>();
+			_container.RegisterType<IGoogleAnalyticsTransactionManager, GoogleAnalyticsTransactionManager>();
+
             _container.RegisterType<IObserver<OrderChangedEvent>, OrderChangedObserver>("OrderChangedObserver");
-            _container.RegisterType<IGoogleAnalyticsTransactionManager, GoogleAnalyticsTransactionManager>();
         }
 
         public override void PostInitialize()

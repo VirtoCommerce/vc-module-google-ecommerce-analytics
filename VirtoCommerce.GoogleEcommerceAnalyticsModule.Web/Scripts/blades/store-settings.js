@@ -12,7 +12,8 @@
 
     blade.refresh = function() {
         blade.enableTracking = _.find(blade.currentEntities, function(x) { return x.name === 'GoogleEcommerceAnalytics.EnableTracking' });
-        blade.googleTagManagerId = _.find(blade.currentEntities, function(x) { return x.name === 'GoogleEcommerceAnalytics.GoogleTagManagerId' });
+		blade.googleTagManagerId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleTagManagerId' });
+		blade.googleAnalyticsTrackingId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId' });
     };
 
     function isDirty() {
