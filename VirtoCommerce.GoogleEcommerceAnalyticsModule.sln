@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.csproj", "{70FA10B3-B384-4B8A-805D-DCF593CD5F59}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj", "{10665914-135C-4FDA-9912-D6C9472A51C1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests\VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests.csproj", "{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,8 +23,15 @@ Global
 		{10665914-135C-4FDA-9912-D6C9472A51C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{10665914-135C-4FDA-9912-D6C9472A51C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{10665914-135C-4FDA-9912-D6C9472A51C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C5F719FB-1B2E-4D27-870E-9C3CB3539F78}
 	EndGlobalSection
 EndGlobal

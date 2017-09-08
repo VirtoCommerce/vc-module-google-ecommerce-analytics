@@ -30,11 +30,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="GoogleAnalyticsTracker.Core, Version=3.0.26.0, Culture=neutral, PublicKeyToken=04ab204e84b117c0, processorArchitecture=MSIL">
-      <HintPath>..\packages\GoogleAnalyticsTracker.Core.3.0.26\lib\portable-net45+win+wp80\GoogleAnalyticsTracker.Core.dll</HintPath>
+    <Reference Include="GoogleAnalyticsTracker.Core, Version=4.4.0.0, Culture=neutral, PublicKeyToken=04ab204e84b117c0, processorArchitecture=MSIL">
+      <HintPath>..\packages\GoogleAnalyticsTracker.Core.4.4.0\lib\portable45-net45+win8+wpa81\GoogleAnalyticsTracker.Core.dll</HintPath>
     </Reference>
-    <Reference Include="GoogleAnalyticsTracker.Simple, Version=3.0.26.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\GoogleAnalyticsTracker.Simple.3.0.26\lib\net45\GoogleAnalyticsTracker.Simple.dll</HintPath>
+    <Reference Include="GoogleAnalyticsTracker.Simple, Version=4.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\GoogleAnalyticsTracker.Simple.4.4.0\lib\portable45-net45+win8+wpa81\GoogleAnalyticsTracker.Simple.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -69,9 +69,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Converters\ECommerceConverter.cs" />
     <Compile Include="Ovservers\OrderChangedObserver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\GoogleAnalyticsSettingsManager.cs" />
     <Compile Include="Services\GoogleAnalyticsTransactionManager.cs" />
+    <Compile Include="Services\IGoogleAnalyticsSettingsManager.cs" />
     <Compile Include="Services\IGoogleAnalyticsTransactionManager.cs" />
   </ItemGroup>
   <ItemGroup>

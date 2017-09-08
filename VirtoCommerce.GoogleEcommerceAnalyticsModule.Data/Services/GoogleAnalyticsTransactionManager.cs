@@ -4,53 +4,97 @@ using System.Linq;
 using GoogleAnalyticsTracker.Simple;
 using VirtoCommerce.Domain.Order.Model;
 using VirtoCommerce.Platform.Core.Settings;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using GoogleAnalyticsTracker.Core.Interface;
+using GoogleAnalyticsTracker.Core.TrackerParameters;
+using GoogleAnalyticsTracker.Core;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Converters;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 {
-    public class GoogleAnalyticsTransactionManager : IGoogleAnalyticsTransactionManager
-    {
-        private readonly string _trackingId;
+	
 
-        public GoogleAnalyticsTransactionManager(ISettingsManager settingsManager)
-        {
-            _trackingId = settingsManager.GetValue("GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId", string.Empty);
-        }
+	public class GoogleAnalyticsTransactionManager : IGoogleAnalyticsTransactionManager
+	{
+		readonly IGoogleAnalyticsSettingsManager _settingsManager;
 
-        public void RevertTransaction(CustomerOrder order)
-        {
-            if (order == null)
-            {
-                throw new ArgumentNullException(nameof(order));
-            }
+		public GoogleAnalyticsTransactionManager(IGoogleAnalyticsSettingsManager settingsManager)
+		{
+			if (settingsManager == null)
+			{
+				throw new ArgumentNullException(nameof(settingsManager));
+			}
 
-            var address = order.Addresses.FirstOrDefault(a => a.AddressType == Domain.Commerce.Model.AddressType.Shipping);
-            if (address == null)
-            {
-                address = order.Addresses.FirstOrDefault(a => a.AddressType == Domain.Commerce.Model.AddressType.Billing);
-            }
+			_settingsManager = settingsManager;
+		}
 
-            using (var tracker = new SimpleTracker(_trackingId, string.Empty))
-            {
-                tracker.TrackTransactionAsync(
-                    orderId: order.Number,
-                    storeName: string.Empty,
-                    total: (-1 * order.Total).ToString(CultureInfo.InvariantCulture),
-                    tax: (-1 * order.TaxTotal).ToString(CultureInfo.InvariantCulture),
-                    shipping: (-1 * order.ShippingTotal).ToString(CultureInfo.InvariantCulture),
-                    city: address?.City,
-                    region: address?.RegionName,
-                    country: address?.CountryName);
-                foreach (var lineItem in order.Items)
-                {
-                    tracker.TrackTransactionItemAsync(
-                        orderId: order.Number,
-                        productId: lineItem.ProductId,
-                        productName: lineItem.Name,
-                        productVariation: lineItem.Sku,
-                        productPrice: lineItem.PlacedPrice.ToString(CultureInfo.InvariantCulture),
-                        quantity: (-1 * lineItem.Quantity).ToString(CultureInfo.InvariantCulture));
-                }
-            }
-        }
-    }
+		public async Task CreateTransaction(CustomerOrder order)
+		{
+			if (order == null)
+			{
+				throw new ArgumentNullException(nameof(order));
+			}
+
+			var setings = _settingsManager.Get(order.StoreId);
+
+			if (!setings.IsActive)
+				return;
+
+			using (var tracker = new SimpleTracker(setings.TrackingId, setings.TrackingDomain ?? string.Empty, CreateEnvironment()))
+			{
+				var list = new List<Task<TrackingResult>>();
+
+				var task = tracker.TrackAsync(ECommerceConverter.OrderToTransaction(order));
+				list.Add(task);
+
+				foreach (var lineItem in order.Items)
+				{
+					var lineItemTask = tracker.TrackAsync(ECommerceConverter.LineItemToTransactionItem(order, lineItem));
+
+					list.Add(lineItemTask);
+				}
+
+				await Task.WhenAll(list.ToArray());
+			}
+		}
+
+		private ITrackerEnvironment CreateEnvironment()
+		{
+			return new SimpleTrackerEnvironment(
+				Environment.OSVersion.Platform.ToString(),
+				Environment.OSVersion.Version.ToString(),
+				Environment.OSVersion.VersionString
+				);
+		}
+
+		public async Task RevertTransaction(CustomerOrder order)
+		{
+			if (order == null)
+			{
+				throw new ArgumentNullException(nameof(order));
+			}
+
+			var setings = _settingsManager.Get(order.StoreId);
+
+			if (!setings.IsActive)
+				return;
+
+			using (var tracker = new SimpleTracker(setings.TrackingId, setings.TrackingDomain ?? string.Empty, CreateEnvironment()))
+			{
+				var list = new List<Task<TrackingResult>>();
+
+				var task = tracker.TrackAsync(ECommerceConverter.OrderToTransaction(order, true));
+				list.Add(task);
+
+				foreach (var lineItem in order.Items)
+				{
+					var lineItemTask = tracker.TrackAsync(ECommerceConverter.LineItemToTransactionItem(order, lineItem, true));
+					list.Add(lineItemTask);
+				}
+
+				await Task.WhenAll(list.ToArray());
+			}
+		}
+	}
 }
