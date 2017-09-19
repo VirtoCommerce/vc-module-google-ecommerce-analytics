@@ -31,6 +31,9 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 				retVal.IsActive = store.Settings.GetSettingValue("GoogleEcommerceAnalytics.EnableTracking", false);
 			}
 
+			retVal.CreateECommerceTransaction = store.Settings.GetSettingValue("GoogleEcommerceAnalytics.CreateECommerceTransaction", false);
+			retVal.ReverseECommerceTransaction = store.Settings.GetSettingValue("GoogleEcommerceAnalytics.ReverseECommerceTransaction", true);
+
 			return retVal;
 		}
 	}

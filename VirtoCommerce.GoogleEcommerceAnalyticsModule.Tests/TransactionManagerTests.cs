@@ -24,7 +24,14 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests
 
 		private IGoogleAnalyticsSettingsManager GetSettingsManager()
 		{
-			return Mock.Of<IGoogleAnalyticsSettingsManager>(s => s.Get(It.IsAny<string>()) == new GoogleAnalyticsSettings { IsActive = true, TrackingId = _googleAnalyticsTrackingId });
+			return Mock.Of<IGoogleAnalyticsSettingsManager>(s => s.Get(It.IsAny<string>()) == 
+				new GoogleAnalyticsSettings
+				{
+					IsActive = true,
+					CreateECommerceTransaction = true,
+					ReverseECommerceTransaction = true,
+					TrackingId = _googleAnalyticsTrackingId
+				});
 		}
 
 
