@@ -6,7 +6,9 @@
 								"note": "Ecommerce Google Analytics module allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce.",
 								"is-active": "Is Active",
 								"gtm-id": "Google Tag Manager Id",
-								"ga-id": "Google Analytics Tracking Id"
+								"ga-id": "Google Analytics Tracking Id",
+								"createECommerceTransaction": "Send ecommerce transaction in GA when order is created",
+								"reverseECommerceTransaction": "Reverse ecommerce transaction from GA when order is canceled"
 							},
 							"placeholders": {
 								"gtm-id": "Enter Google Tag Manager Id",

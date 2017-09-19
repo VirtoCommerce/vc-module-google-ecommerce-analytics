@@ -24,6 +24,24 @@
 						<input ng-model="blade.googleAnalyticsTrackingId.value" type="text" placeholder="{{ 'google-ecommerce-analytics.blades.store-settings.placeholders.ga-id' | translate }}">
 					</div>
 				</div>
+				<div class="form-group">
+					<label class="form-label">{{ 'google-ecommerce-analytics.blades.store-settings.labels.createECommerceTransaction' | translate }}</label>
+					<div class="form-input">
+						<label class="form-label __switch">
+							<input type="checkbox" ng-model="blade.createECommerceTransaction.value" />
+							<span class="switch"></span>
+						</label>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="form-label">{{ 'google-ecommerce-analytics.blades.store-settings.labels.reverseECommerceTransaction' | translate }}</label>
+					<div class="form-input">
+						<label class="form-label __switch">
+							<input type="checkbox" ng-model="blade.revertECommerceTransaction.value" />
+							<span class="switch"></span>
+						</label>
+					</div>
+				</div>
             </form>
         </div>
     </div>
