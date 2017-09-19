@@ -36,12 +36,12 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 				throw new ArgumentNullException(nameof(order));
 			}
 
-			var setings = _settingsManager.Get(order.StoreId);
+			var settings = _settingsManager.Get(order.StoreId);
 
-			if (!setings.IsActive)
+			if (!settings.IsActive || !settings.CreateECommerceTransaction)
 				return;
 
-			using (var tracker = new SimpleTracker(setings.TrackingId, setings.TrackingDomain ?? string.Empty, CreateEnvironment()))
+			using (var tracker = new SimpleTracker(settings.TrackingId, settings.TrackingDomain ?? string.Empty, CreateEnvironment()))
 			{
 				var list = new List<Task<TrackingResult>>();
 
@@ -75,12 +75,12 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 				throw new ArgumentNullException(nameof(order));
 			}
 
-			var setings = _settingsManager.Get(order.StoreId);
+			var settings = _settingsManager.Get(order.StoreId);
 
-			if (!setings.IsActive)
+			if (!settings.IsActive || !settings.ReverseECommerceTransaction)
 				return;
 
-			using (var tracker = new SimpleTracker(setings.TrackingId, setings.TrackingDomain ?? string.Empty, CreateEnvironment()))
+			using (var tracker = new SimpleTracker(settings.TrackingId, settings.TrackingDomain ?? string.Empty, CreateEnvironment()))
 			{
 				var list = new List<Task<TrackingResult>>();
 
