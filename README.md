@@ -63,7 +63,7 @@ In VC Manager go to Browse -> STORES -> {YourStore} -> Ecommerce Google Analytic
 To verify the correct integration you can use the Chrome extension <a href="https://chrome.google.com/webstore/detail/tag-assistant-by-google/kejbdjndbnbjgmefkgdddjlbokphdefk">Tag Assistant</a> from Google. 
 
 # License
-Copyright (c) Virtosoftware Ltd.  All rights reserved.
+Copyright (c) Virto Solutions LTD.  All rights reserved.
 
 Licensed under the Virto Commerce Open Software License (the "License"); you
 may not use this file except in compliance with the License. You may
