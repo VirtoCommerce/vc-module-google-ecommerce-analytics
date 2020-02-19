@@ -28,7 +28,7 @@ To assist developers in identifying the type of data they are looking to track, 
 
 Check out the Google Analytics tracking [guide](https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce?hl=en) for a detailed list of all the individual data types that can be tracked under each of these categories.
 
-## Google Ecommerce Analytics Module
+## VC Google Ecommerce Analytics Module
 
 Google Ecommerce Analytics module allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce. You can track the user behavior across your e-commerce store starting from product views to thank you page.
 
