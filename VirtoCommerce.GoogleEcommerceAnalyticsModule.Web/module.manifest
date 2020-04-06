@@ -47,6 +47,18 @@
           <title>Google Analytics Tracking ID</title>
           <description>UA-XXXXXXXX-X</description>
         </setting>
+        <setting>
+          <name>GoogleEcommerceAnalytics.CreateECommerceTransaction</name>
+          <valueType>boolean</valueType>
+          <title>Send ecommerce transaction in GA when order is created</title>
+          <description></description>
+        </setting>
+        <setting>
+          <name>GoogleEcommerceAnalytics.ReverseECommerceTransaction</name>
+          <valueType>boolean</valueType>
+          <title>Reverse ecommerce transaction from GA when order is canceled</title>
+          <description></description>
+        </setting>
       </group>
     </settings>
 </module>
