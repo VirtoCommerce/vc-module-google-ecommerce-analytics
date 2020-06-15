@@ -16,7 +16,7 @@
         <owner>Virto Commerce</owner>
     </owners>
     <projectUrl>https://virtocommerce.com/apps/extensions/google-ecommerce-analytics-module</projectUrl>
-    <iconUrl>https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/raw/master/VirtoCommerce.GoogleEcommerceAnalyticsModule.Web/Content/logo.png</iconUrl>
+    <iconUrl>Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Content/logo.png</iconUrl>
     <releaseNotes>First version.</releaseNotes>
     <copyright>Copyright © 2011-2016 Virto Commerce. All rights reserved</copyright>
     <tags>analytics</tags>
