@@ -34,7 +34,7 @@ Google Ecommerce Analytics Module can measure the following data:
 
 * [VC Ecommerce Google Analytics Module](/docs/index.md)
 
-* [View on Githib](https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics)
+* [View on Github](https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics)
 
 ## References
 
