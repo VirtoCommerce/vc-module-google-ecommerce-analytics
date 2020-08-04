@@ -1,0 +1,511 @@
+{
+  "errors": [],
+  "warnings": [
+    "(undefined) configuration\nThe 'mode' option has not been set, webpack will fallback to 'production' for this value. Set 'mode' option to 'development' or 'production' to enable defaults for each environment.\nYou can also set it to 'none' to disable any default behavior. Learn more: https://webpack.js.org/configuration/mode/"
+  ],
+  "version": "4.32.2",
+  "hash": "4f4befa477690d2d94b8",
+  "children": [
+    {
+      "errors": [],
+      "warnings": [
+        "configuration\nThe 'mode' option has not been set, webpack will fallback to 'production' for this value. Set 'mode' option to 'development' or 'production' to enable defaults for each environment.\nYou can also set it to 'none' to disable any default behavior. Learn more: https://webpack.js.org/configuration/mode/"
+      ],
+      "hash": "4f4befa477690d2d94b8",
+      "time": 322,
+      "builtAt": 1596537794078,
+      "publicPath": "",
+      "outputPath": "D:\\vc3all\\vc-module-google-ecommerce-analytics\\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\\dist",
+      "assetsByChunkName": {
+        "main": "app.js"
+      },
+      "assets": [
+        {
+          "name": "app.js",
+          "size": 18000,
+          "chunks": [
+            0
+          ],
+          "chunkNames": [
+            "main"
+          ],
+          "emitted": true
+        }
+      ],
+      "filteredAssets": 0,
+      "entrypoints": {
+        "main": {
+          "chunks": [
+            0
+          ],
+          "assets": [
+            "app.js"
+          ],
+          "children": {},
+          "childAssets": {}
+        }
+      },
+      "namedChunkGroups": {
+        "main": {
+          "chunks": [
+            0
+          ],
+          "assets": [
+            "app.js"
+          ],
+          "children": {},
+          "childAssets": {}
+        }
+      },
+      "chunks": [
+        {
+          "id": 0,
+          "rendered": true,
+          "initial": true,
+          "entry": true,
+          "size": 3729,
+          "names": [
+            "main"
+          ],
+          "files": [
+            "app.js"
+          ],
+          "hash": "f0cf4e73f19272fd66d8",
+          "siblings": [],
+          "parents": [],
+          "children": [],
+          "childrenByOrder": {},
+          "modules": [
+            {
+              "id": 0,
+              "identifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "name": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "index": 0,
+              "index2": 3,
+              "size": 52,
+              "built": true,
+              "optional": false,
+              "prefetched": false,
+              "chunks": [
+                0
+              ],
+              "issuer": null,
+              "issuerId": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "profile": {
+                "factory": 1,
+                "building": 4
+              },
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleId": null,
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "type": "multi entry"
+                }
+              ],
+              "usedExports": true,
+              "providedExports": null,
+              "optimizationBailout": [
+                "ModuleConcatenation bailout: Module is not an ECMAScript module"
+              ],
+              "depth": 0
+            },
+            {
+              "id": 1,
+              "identifier": "D:\\vc3all\\vc-module-google-ecommerce-analytics\\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\\Scripts\\module.js",
+              "name": "./Scripts/module.js",
+              "index": 1,
+              "index2": 0,
+              "size": 734,
+              "cacheable": true,
+              "built": true,
+              "optional": false,
+              "prefetched": false,
+              "chunks": [
+                0
+              ],
+              "issuer": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "issuerId": 0,
+              "issuerName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "issuerPath": [
+                {
+                  "id": 0,
+                  "identifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "name": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "profile": {
+                    "factory": 1,
+                    "building": 4
+                  }
+                }
+              ],
+              "profile": {
+                "factory": 24,
+                "building": 15
+              },
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleId": 0,
+                  "moduleIdentifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "module": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "moduleName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "type": "single entry",
+                  "userRequest": "./Scripts/module.js",
+                  "loc": "main[0]"
+                }
+              ],
+              "usedExports": true,
+              "providedExports": null,
+              "optimizationBailout": [
+                "ModuleConcatenation bailout: Module is not an ECMAScript module"
+              ],
+              "depth": 1,
+              "source": "//Call this to register our module to main application\r\nvar moduleName = \"virtoCommerce.googleEcommerceAnalyticsModule\";\r\n\r\nif (AppDependencies !== undefined) {\r\n    AppDependencies.push(moduleName);\r\n}\r\n\r\nangular.module(moduleName, [])\r\n    .run(['platformWebApp.widgetService',\r\n        function (widgetService) {\r\n            // themes widget in STORE details\r\n            widgetService.registerWidget({\r\n                controller: 'virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsWidgetController',\r\n                template: 'Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Scripts/widgets/store-settings-widget.tpl.html',\r\n                permission: 'content:read'\r\n            }, 'storeDetail');\r\n        }]);\r\n\r\n"
+            },
+            {
+              "id": 2,
+              "identifier": "D:\\vc3all\\vc-module-google-ecommerce-analytics\\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\\Scripts\\blades\\store-settings.js",
+              "name": "./Scripts/blades/store-settings.js",
+              "index": 2,
+              "index2": 1,
+              "size": 2090,
+              "cacheable": true,
+              "built": true,
+              "optional": false,
+              "prefetched": false,
+              "chunks": [
+                0
+              ],
+              "issuer": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "issuerId": 0,
+              "issuerName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "issuerPath": [
+                {
+                  "id": 0,
+                  "identifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "name": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "profile": {
+                    "factory": 1,
+                    "building": 4
+                  }
+                }
+              ],
+              "profile": {
+                "factory": 24,
+                "building": 15
+              },
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleId": 0,
+                  "moduleIdentifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "module": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "moduleName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "type": "single entry",
+                  "userRequest": "./Scripts/blades/store-settings.js",
+                  "loc": "main[1]"
+                }
+              ],
+              "usedExports": true,
+              "providedExports": null,
+              "optimizationBailout": [
+                "ModuleConcatenation bailout: Module is not an ECMAScript module"
+              ],
+              "depth": 1,
+              "source": "﻿angular.module('virtoCommerce.googleEcommerceAnalyticsModule')\n.controller('virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController', ['$scope', function ($scope) {\n    var blade = $scope.blade;\n    blade.updatePermission = 'platform:setting:update';\n\n    function initializeBlade(data) {\n        blade.currentEntities = angular.copy(data);\n        blade.origEntity = data;\n        blade.refresh();\n        blade.isLoading = false;\n    }\n\n    blade.refresh = function() {\n\t\tblade.enableTracking = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.EnableTracking'; });\n\t\tblade.createECommerceTransaction = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.CreateECommerceTransaction'; });\n\t\tblade.reverseECommerceTransaction = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.ReverseECommerceTransaction'; });\n\n\t\tblade.googleTagManagerId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleTagManagerId'; });\n\t\tblade.googleAnalyticsTrackingId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId'; });\n    };\n\n    function isDirty() {\n        return !angular.equals(blade.currentEntities, blade.origEntity) && blade.hasUpdatePermission();\n    }\n\n    $scope.saveChanges = function () {\n        angular.copy(blade.currentEntities, blade.origEntity);\n        $scope.bladeClose();\n    };\n\n\t$scope.cancelChanges = function () {\n\t\t$scope.bladeClose();\n\t};\n\n    $scope.blade.headIcon = 'fa-database';\n\n    blade.toolbarCommands = [\n        {\n            name: \"platform.commands.reset\", icon: 'fa fa-undo',\n            executeMethod: function () {\n                angular.copy(blade.origEntity, blade.currentEntities);\n                blade.refresh();\n            },\n            canExecuteMethod: isDirty,\n            permission: blade.updatePermission\n        }\n    ];\n\n    $scope.$watch('blade.parentBlade.currentEntity.settings', initializeBlade);\n}]);"
+            },
+            {
+              "id": 3,
+              "identifier": "D:\\vc3all\\vc-module-google-ecommerce-analytics\\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\\Scripts\\widgets\\store-settings-widget.js",
+              "name": "./Scripts/widgets/store-settings-widget.js",
+              "index": 3,
+              "index2": 2,
+              "size": 853,
+              "cacheable": true,
+              "built": true,
+              "optional": false,
+              "prefetched": false,
+              "chunks": [
+                0
+              ],
+              "issuer": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "issuerId": 0,
+              "issuerName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "issuerPath": [
+                {
+                  "id": 0,
+                  "identifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "name": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "profile": {
+                    "factory": 1,
+                    "building": 4
+                  }
+                }
+              ],
+              "profile": {
+                "factory": 24,
+                "building": 15
+              },
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleId": 0,
+                  "moduleIdentifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "module": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "moduleName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+                  "type": "single entry",
+                  "userRequest": "./Scripts/widgets/store-settings-widget.js",
+                  "loc": "main[2]"
+                }
+              ],
+              "usedExports": true,
+              "providedExports": null,
+              "optimizationBailout": [
+                "ModuleConcatenation bailout: Module is not an ECMAScript module"
+              ],
+              "depth": 1,
+              "source": "﻿angular.module('virtoCommerce.googleEcommerceAnalyticsModule')\n.controller('virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsWidgetController', ['$scope', 'platformWebApp.bladeNavigationService', function ($scope, bladeNavigationService) {\n    var blade = $scope.widget.blade;\n    \n    $scope.openBlade = function () {\n        var newBlade = {\n            id: \"storeChildBlade\",\n            title: blade.title,\n            subtitle: 'google-ecommerce-analytics.widgets.store-settings.blade-subtitle',\n            controller: 'virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController',\n            template: 'Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Scripts/blades/store-settings.tpl.html',\n            securityScopes: blade.securityScopes\n        };\n        bladeNavigationService.showBlade(newBlade, blade);\n    };\n}]);"
+            }
+          ],
+          "filteredModules": 0,
+          "origins": [
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "main",
+              "request": null,
+              "reasons": []
+            }
+          ]
+        }
+      ],
+      "modules": [
+        {
+          "id": 0,
+          "identifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+          "name": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+          "index": 0,
+          "index2": 3,
+          "size": 52,
+          "built": true,
+          "optional": false,
+          "prefetched": false,
+          "chunks": [
+            0
+          ],
+          "issuer": null,
+          "issuerId": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "profile": {
+            "factory": 1,
+            "building": 4
+          },
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "assets": [],
+          "reasons": [
+            {
+              "moduleId": null,
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "type": "multi entry"
+            }
+          ],
+          "usedExports": true,
+          "providedExports": null,
+          "optimizationBailout": [
+            "ModuleConcatenation bailout: Module is not an ECMAScript module"
+          ],
+          "depth": 0
+        },
+        {
+          "id": 1,
+          "identifier": "D:\\vc3all\\vc-module-google-ecommerce-analytics\\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\\Scripts\\module.js",
+          "name": "./Scripts/module.js",
+          "index": 1,
+          "index2": 0,
+          "size": 734,
+          "cacheable": true,
+          "built": true,
+          "optional": false,
+          "prefetched": false,
+          "chunks": [
+            0
+          ],
+          "issuer": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+          "issuerId": 0,
+          "issuerName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+          "issuerPath": [
+            {
+              "id": 0,
+              "identifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "name": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "profile": {
+                "factory": 1,
+                "building": 4
+              }
+            }
+          ],
+          "profile": {
+            "factory": 24,
+            "building": 15
+          },
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "assets": [],
+          "reasons": [
+            {
+              "moduleId": 0,
+              "moduleIdentifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "module": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "moduleName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "type": "single entry",
+              "userRequest": "./Scripts/module.js",
+              "loc": "main[0]"
+            }
+          ],
+          "usedExports": true,
+          "providedExports": null,
+          "optimizationBailout": [
+            "ModuleConcatenation bailout: Module is not an ECMAScript module"
+          ],
+          "depth": 1,
+          "source": "//Call this to register our module to main application\r\nvar moduleName = \"virtoCommerce.googleEcommerceAnalyticsModule\";\r\n\r\nif (AppDependencies !== undefined) {\r\n    AppDependencies.push(moduleName);\r\n}\r\n\r\nangular.module(moduleName, [])\r\n    .run(['platformWebApp.widgetService',\r\n        function (widgetService) {\r\n            // themes widget in STORE details\r\n            widgetService.registerWidget({\r\n                controller: 'virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsWidgetController',\r\n                template: 'Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Scripts/widgets/store-settings-widget.tpl.html',\r\n                permission: 'content:read'\r\n            }, 'storeDetail');\r\n        }]);\r\n\r\n"
+        },
+        {
+          "id": 2,
+          "identifier": "D:\\vc3all\\vc-module-google-ecommerce-analytics\\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\\Scripts\\blades\\store-settings.js",
+          "name": "./Scripts/blades/store-settings.js",
+          "index": 2,
+          "index2": 1,
+          "size": 2090,
+          "cacheable": true,
+          "built": true,
+          "optional": false,
+          "prefetched": false,
+          "chunks": [
+            0
+          ],
+          "issuer": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+          "issuerId": 0,
+          "issuerName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+          "issuerPath": [
+            {
+              "id": 0,
+              "identifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "name": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "profile": {
+                "factory": 1,
+                "building": 4
+              }
+            }
+          ],
+          "profile": {
+            "factory": 24,
+            "building": 15
+          },
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "assets": [],
+          "reasons": [
+            {
+              "moduleId": 0,
+              "moduleIdentifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "module": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "moduleName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "type": "single entry",
+              "userRequest": "./Scripts/blades/store-settings.js",
+              "loc": "main[1]"
+            }
+          ],
+          "usedExports": true,
+          "providedExports": null,
+          "optimizationBailout": [
+            "ModuleConcatenation bailout: Module is not an ECMAScript module"
+          ],
+          "depth": 1,
+          "source": "﻿angular.module('virtoCommerce.googleEcommerceAnalyticsModule')\n.controller('virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController', ['$scope', function ($scope) {\n    var blade = $scope.blade;\n    blade.updatePermission = 'platform:setting:update';\n\n    function initializeBlade(data) {\n        blade.currentEntities = angular.copy(data);\n        blade.origEntity = data;\n        blade.refresh();\n        blade.isLoading = false;\n    }\n\n    blade.refresh = function() {\n\t\tblade.enableTracking = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.EnableTracking'; });\n\t\tblade.createECommerceTransaction = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.CreateECommerceTransaction'; });\n\t\tblade.reverseECommerceTransaction = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.ReverseECommerceTransaction'; });\n\n\t\tblade.googleTagManagerId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleTagManagerId'; });\n\t\tblade.googleAnalyticsTrackingId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId'; });\n    };\n\n    function isDirty() {\n        return !angular.equals(blade.currentEntities, blade.origEntity) && blade.hasUpdatePermission();\n    }\n\n    $scope.saveChanges = function () {\n        angular.copy(blade.currentEntities, blade.origEntity);\n        $scope.bladeClose();\n    };\n\n\t$scope.cancelChanges = function () {\n\t\t$scope.bladeClose();\n\t};\n\n    $scope.blade.headIcon = 'fa-database';\n\n    blade.toolbarCommands = [\n        {\n            name: \"platform.commands.reset\", icon: 'fa fa-undo',\n            executeMethod: function () {\n                angular.copy(blade.origEntity, blade.currentEntities);\n                blade.refresh();\n            },\n            canExecuteMethod: isDirty,\n            permission: blade.updatePermission\n        }\n    ];\n\n    $scope.$watch('blade.parentBlade.currentEntity.settings', initializeBlade);\n}]);"
+        },
+        {
+          "id": 3,
+          "identifier": "D:\\vc3all\\vc-module-google-ecommerce-analytics\\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\\Scripts\\widgets\\store-settings-widget.js",
+          "name": "./Scripts/widgets/store-settings-widget.js",
+          "index": 3,
+          "index2": 2,
+          "size": 853,
+          "cacheable": true,
+          "built": true,
+          "optional": false,
+          "prefetched": false,
+          "chunks": [
+            0
+          ],
+          "issuer": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+          "issuerId": 0,
+          "issuerName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+          "issuerPath": [
+            {
+              "id": 0,
+              "identifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "name": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "profile": {
+                "factory": 1,
+                "building": 4
+              }
+            }
+          ],
+          "profile": {
+            "factory": 24,
+            "building": 15
+          },
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "assets": [],
+          "reasons": [
+            {
+              "moduleId": 0,
+              "moduleIdentifier": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "module": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "moduleName": "multi ./Scripts/module.js ./Scripts/blades/store-settings.js ./Scripts/widgets/store-settings-widget.js",
+              "type": "single entry",
+              "userRequest": "./Scripts/widgets/store-settings-widget.js",
+              "loc": "main[2]"
+            }
+          ],
+          "usedExports": true,
+          "providedExports": null,
+          "optimizationBailout": [
+            "ModuleConcatenation bailout: Module is not an ECMAScript module"
+          ],
+          "depth": 1,
+          "source": "﻿angular.module('virtoCommerce.googleEcommerceAnalyticsModule')\n.controller('virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsWidgetController', ['$scope', 'platformWebApp.bladeNavigationService', function ($scope, bladeNavigationService) {\n    var blade = $scope.widget.blade;\n    \n    $scope.openBlade = function () {\n        var newBlade = {\n            id: \"storeChildBlade\",\n            title: blade.title,\n            subtitle: 'google-ecommerce-analytics.widgets.store-settings.blade-subtitle',\n            controller: 'virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsController',\n            template: 'Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Scripts/blades/store-settings.tpl.html',\n            securityScopes: blade.securityScopes\n        };\n        bladeNavigationService.showBlade(newBlade, blade);\n    };\n}]);"
+        }
+      ],
+      "filteredModules": 0,
+      "children": []
+    }
+  ]
+}

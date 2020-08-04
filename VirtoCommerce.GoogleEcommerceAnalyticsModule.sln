@@ -1,13 +1,19 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26730.12
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.csproj", "{70FA10B3-B384-4B8A-805D-DCF593CD5F59}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F7BC78F8-DBC8-4545-BCD5-95E7296A70DA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj", "{10665914-135C-4FDA-9912-D6C9472A51C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.csproj", "{08925A27-8F57-42B5-AF1B-6FE8C3A565A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests\VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests.csproj", "{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Core", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Core\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.csproj", "{D9E6CE00-72B7-494B-9669-DF47BDFEE8F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj", "{A3F23E92-42E1-46BA-BE43-9EF2B24E5A3E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EB0D29F9-3208-42A4-B741-953209B20A43}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests\VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests.csproj", "{53796673-42BC-4D31-9348-A430C79C06CA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,23 +21,33 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{70FA10B3-B384-4B8A-805D-DCF593CD5F59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{70FA10B3-B384-4B8A-805D-DCF593CD5F59}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{70FA10B3-B384-4B8A-805D-DCF593CD5F59}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{70FA10B3-B384-4B8A-805D-DCF593CD5F59}.Release|Any CPU.Build.0 = Release|Any CPU
-		{10665914-135C-4FDA-9912-D6C9472A51C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{10665914-135C-4FDA-9912-D6C9472A51C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{10665914-135C-4FDA-9912-D6C9472A51C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{10665914-135C-4FDA-9912-D6C9472A51C1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CB787203-0F38-4FA6-B324-9F90DD1A5FE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08925A27-8F57-42B5-AF1B-6FE8C3A565A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08925A27-8F57-42B5-AF1B-6FE8C3A565A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08925A27-8F57-42B5-AF1B-6FE8C3A565A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08925A27-8F57-42B5-AF1B-6FE8C3A565A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9E6CE00-72B7-494B-9669-DF47BDFEE8F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9E6CE00-72B7-494B-9669-DF47BDFEE8F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9E6CE00-72B7-494B-9669-DF47BDFEE8F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9E6CE00-72B7-494B-9669-DF47BDFEE8F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3F23E92-42E1-46BA-BE43-9EF2B24E5A3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3F23E92-42E1-46BA-BE43-9EF2B24E5A3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3F23E92-42E1-46BA-BE43-9EF2B24E5A3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3F23E92-42E1-46BA-BE43-9EF2B24E5A3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53796673-42BC-4D31-9348-A430C79C06CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53796673-42BC-4D31-9348-A430C79C06CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53796673-42BC-4D31-9348-A430C79C06CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53796673-42BC-4D31-9348-A430C79C06CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{08925A27-8F57-42B5-AF1B-6FE8C3A565A4} = {F7BC78F8-DBC8-4545-BCD5-95E7296A70DA}
+		{D9E6CE00-72B7-494B-9669-DF47BDFEE8F0} = {F7BC78F8-DBC8-4545-BCD5-95E7296A70DA}
+		{A3F23E92-42E1-46BA-BE43-9EF2B24E5A3E} = {F7BC78F8-DBC8-4545-BCD5-95E7296A70DA}
+		{53796673-42BC-4D31-9348-A430C79C06CA} = {EB0D29F9-3208-42A4-B741-953209B20A43}
+	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {C5F719FB-1B2E-4D27-870E-9C3CB3539F78}
+		SolutionGuid = {F64673EE-32DC-4442-879E-B27A6AC4B97F}
 	EndGlobalSection
 EndGlobal
