@@ -1,41 +1,43 @@
-﻿using System;
-using System.Linq;
-using Microsoft.Practices.Unity;
-using VirtoCommerce.Domain.Order.Events;
-using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Ovservers;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Handlers;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
+using VirtoCommerce.OrdersModule.Core.Events;
+using VirtoCommerce.Platform.Core.Bus;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Settings;
+using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
 {
-    public class Module : ModuleBase
+    public class Module : IModule
     {
-        private readonly IUnityContainer _container;
+        public ManifestModuleInfo ModuleInfo { get; set; }
 
-        public Module(IUnityContainer container)
+        public void Initialize(IServiceCollection serviceCollection)
         {
-            _container = container;
+            serviceCollection.AddTransient<IGoogleAnalyticsSettingsManager, GoogleAnalyticsSettingsManager>();
+            serviceCollection.AddTransient<IGoogleAnalyticsTransactionManager, GoogleAnalyticsTransactionManager>();
+
+            serviceCollection.AddTransient<OrderChangedHandler>();
         }
 
-        #region Public Methods and Operators
-
-        public override void Initialize()
+        public void PostInitialize(IApplicationBuilder appBuilder)
         {
-			_container.RegisterType<IGoogleAnalyticsSettingsManager, GoogleAnalyticsSettingsManager>();
-			_container.RegisterType<IGoogleAnalyticsTransactionManager, GoogleAnalyticsTransactionManager>();
+            // register settings
+            var settingsRegistrar = appBuilder.ApplicationServices.GetRequiredService<ISettingsRegistrar>();
+            settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);
+            //Register store level settings
+            settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.AllSettings, nameof(Store));
 
-            _container.RegisterType<IObserver<OrderChangedEvent>, OrderChangedObserver>("OrderChangedObserver");
+            var inProcessBus = appBuilder.ApplicationServices.GetService<IHandlerRegistrar>();
+            inProcessBus.RegisterHandler<OrderChangedEvent>((message, token) => appBuilder.ApplicationServices.GetService<OrderChangedHandler>().Handle(message));
         }
 
-        public override void PostInitialize()
+        public void Uninstall()
         {
-            base.PostInitialize();
-
-            var settingManager = _container.Resolve<ISettingsManager>();
-            var googleEcommerceAnalyticsSettings = settingManager.GetModuleSettings("VirtoCommerce.GoogleEcommerceAnalytics").ToArray();
-            settingManager.RegisterModuleSettings("VirtoCommerce.Store", googleEcommerceAnalyticsSettings);
+            // do nothing in here
         }
-        #endregion
     }
 }

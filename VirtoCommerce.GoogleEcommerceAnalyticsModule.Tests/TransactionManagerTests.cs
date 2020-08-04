@@ -1,78 +1,72 @@
-﻿using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System;
 using System.Threading.Tasks;
-using VirtoCommerce.Domain.Order.Model;
+using Moq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
-using VirtoCommerce.Platform.Core.Settings;
+using VirtoCommerce.OrdersModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests
 {
     public class TransactionManagerTests
     {
-		public readonly string _googleAnalyticsTrackingId = "UA-88035702-1";
+        public readonly string _googleAnalyticsTrackingId = "UA-88035702-1";
 
-		protected CustomerOrder GetOrder()
-		{
-			var customerObjectJson = System.IO.File.ReadAllText(@"MoqData\CustomerOrder.json");
+        protected CustomerOrder GetOrder()
+        {
+            var customerObjectJson = System.IO.File.ReadAllText(@"MoqData\CustomerOrder.json");
 
-			return Newtonsoft.Json.JsonConvert.DeserializeObject<CustomerOrder>(customerObjectJson);
-		}
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<CustomerOrder>(customerObjectJson);
+        }
 
-		private IGoogleAnalyticsSettingsManager GetSettingsManager()
-		{
-			return Mock.Of<IGoogleAnalyticsSettingsManager>(s => s.Get(It.IsAny<string>()) == 
-				new GoogleAnalyticsSettings
-				{
-					IsActive = true,
-					CreateECommerceTransaction = true,
-					ReverseECommerceTransaction = true,
-					TrackingId = _googleAnalyticsTrackingId
-				});
-		}
+        private IGoogleAnalyticsSettingsManager GetSettingsManager()
+        {
+            var result = new Mock<IGoogleAnalyticsSettingsManager>();
+            result.Setup(x => x.GetAsync(It.IsAny<string>()))
+                .Returns(Task.FromResult(new GoogleAnalyticsSettings
+                {
+                    IsActive = true,
+                    CreateECommerceTransaction = true,
+                    ReverseECommerceTransaction = true,
+                    TrackingId = _googleAnalyticsTrackingId
+                }));
 
-
-		[Fact]
-		public void CreateTransaction()
-		{
-			IGoogleAnalyticsTransactionManager manager = new GoogleAnalyticsTransactionManager(GetSettingsManager());
-
-			var customerOrder = GetOrder();
-			customerOrder.Number = "DEMO" + DateTime.Now.ToString("s");
-			var task = manager.CreateTransaction(customerOrder);
-			task.Wait();
-		}
+            return result.Object;
+        }
 
 
-		[Fact]
-		public void RevertTransaction()
-		{
-			string revertOrderNumber = "DEMO2017-09-08T08:55:32";
+        [Fact]
+        public async Task CreateTransaction()
+        {
+            var manager = new GoogleAnalyticsTransactionManager(GetSettingsManager());
 
-			IGoogleAnalyticsTransactionManager manager = new GoogleAnalyticsTransactionManager(GetSettingsManager());
+            var customerOrder = GetOrder();
+            customerOrder.Number = "DEMO" + DateTime.Now.ToString("s");
+            await manager.CreateTransactionAsync(customerOrder);
+        }
 
-			var customerOrder = GetOrder();
-			customerOrder.Number = revertOrderNumber;
-			var task = manager.RevertTransaction(customerOrder);
-			task.Wait();
-		}
 
-		[Fact]
-		public void CreateAndRevertTransaction()
-		{
-			IGoogleAnalyticsTransactionManager manager = new GoogleAnalyticsTransactionManager(GetSettingsManager());
+        [Fact]
+        public async Task RevertTransaction()
+        {
+            string revertOrderNumber = "DEMO2017-09-08T08:55:32";
 
-			var customerOrder = GetOrder();
-			customerOrder.Number = "DEMOREVERT" + DateTime.Now.ToString("s");
-			var task1 = manager.CreateTransaction(customerOrder);
-			task1.Wait();
+            IGoogleAnalyticsTransactionManager manager = new GoogleAnalyticsTransactionManager(GetSettingsManager());
 
-			var task2 = manager.RevertTransaction(customerOrder);
-			task2.Wait();
-		}
+            var customerOrder = GetOrder();
+            customerOrder.Number = revertOrderNumber;
+            await manager.RevertTransactionAsync(customerOrder);
+        }
 
-	}
+        [Fact]
+        public async Task CreateAndRevertTransaction()
+        {
+            IGoogleAnalyticsTransactionManager manager = new GoogleAnalyticsTransactionManager(GetSettingsManager());
+
+            var customerOrder = GetOrder();
+            customerOrder.Number = "DEMOREVERT" + DateTime.Now.ToString("s");
+            await manager.CreateTransactionAsync(customerOrder);
+
+            await manager.RevertTransactionAsync(customerOrder);
+        }
+    }
 }
