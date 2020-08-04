@@ -1,100 +1,96 @@
 ﻿using System;
-using System.Globalization;
-using System.Linq;
-using GoogleAnalyticsTracker.Simple;
-using VirtoCommerce.Domain.Order.Model;
-using VirtoCommerce.Platform.Core.Settings;
-using System.Threading.Tasks;
 using System.Collections.Generic;
-using GoogleAnalyticsTracker.Core.Interface;
-using GoogleAnalyticsTracker.Core.TrackerParameters;
+using System.Threading.Tasks;
 using GoogleAnalyticsTracker.Core;
+using GoogleAnalyticsTracker.Core.Interface;
+using GoogleAnalyticsTracker.Simple;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Converters;
+using VirtoCommerce.OrdersModule.Core.Model;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 {
-	
 
-	public class GoogleAnalyticsTransactionManager : IGoogleAnalyticsTransactionManager
-	{
-		readonly IGoogleAnalyticsSettingsManager _settingsManager;
 
-		public GoogleAnalyticsTransactionManager(IGoogleAnalyticsSettingsManager settingsManager)
-		{
-			if (settingsManager == null)
-			{
-				throw new ArgumentNullException(nameof(settingsManager));
-			}
+    public class GoogleAnalyticsTransactionManager : IGoogleAnalyticsTransactionManager
+    {
+        readonly IGoogleAnalyticsSettingsManager _settingsManager;
 
-			_settingsManager = settingsManager;
-		}
+        public GoogleAnalyticsTransactionManager(IGoogleAnalyticsSettingsManager settingsManager)
+        {
+            if (settingsManager == null)
+            {
+                throw new ArgumentNullException(nameof(settingsManager));
+            }
 
-		public async Task CreateTransaction(CustomerOrder order)
-		{
-			if (order == null)
-			{
-				throw new ArgumentNullException(nameof(order));
-			}
+            _settingsManager = settingsManager;
+        }
 
-			var settings = _settingsManager.Get(order.StoreId);
+        public async Task CreateTransactionAsync(CustomerOrder order)
+        {
+            if (order == null)
+            {
+                throw new ArgumentNullException(nameof(order));
+            }
 
-			if (!settings.IsActive || !settings.CreateECommerceTransaction)
-				return;
+            var settings = await _settingsManager.GetAsync(order.StoreId);
 
-			using (var tracker = new SimpleTracker(settings.TrackingId, settings.TrackingDomain ?? string.Empty, CreateEnvironment()))
-			{
-				var list = new List<Task<TrackingResult>>();
+            if (!settings.IsActive || !settings.CreateECommerceTransaction)
+                return;
 
-				var task = tracker.TrackAsync(ECommerceConverter.OrderToTransaction(order));
-				list.Add(task);
+            using (var tracker = new SimpleTracker(settings.TrackingId, CreateEnvironment()))
+            {
+                var list = new List<Task<TrackingResult>>();
 
-				foreach (var lineItem in order.Items)
-				{
-					var lineItemTask = tracker.TrackAsync(ECommerceConverter.LineItemToTransactionItem(order, lineItem));
+                var task = tracker.TrackAsync(ECommerceConverter.OrderToTransaction(order));
+                list.Add(task);
 
-					list.Add(lineItemTask);
-				}
+                foreach (var lineItem in order.Items)
+                {
+                    var lineItemTask = tracker.TrackAsync(ECommerceConverter.LineItemToTransactionItem(order, lineItem));
 
-				await Task.WhenAll(list.ToArray());
-			}
-		}
+                    list.Add(lineItemTask);
+                }
 
-		private ITrackerEnvironment CreateEnvironment()
-		{
-			return new SimpleTrackerEnvironment(
-				Environment.OSVersion.Platform.ToString(),
-				Environment.OSVersion.Version.ToString(),
-				Environment.OSVersion.VersionString
-				);
-		}
+                await Task.WhenAll(list.ToArray());
+            }
+        }
 
-		public async Task RevertTransaction(CustomerOrder order)
-		{
-			if (order == null)
-			{
-				throw new ArgumentNullException(nameof(order));
-			}
+        private ITrackerEnvironment CreateEnvironment()
+        {
+            return new SimpleTrackerEnvironment(
+                Environment.OSVersion.Platform.ToString(),
+                Environment.OSVersion.Version.ToString(),
+                Environment.OSVersion.VersionString
+                );
+        }
 
-			var settings = _settingsManager.Get(order.StoreId);
+        public async Task RevertTransactionAsync(CustomerOrder order)
+        {
+            if (order == null)
+            {
+                throw new ArgumentNullException(nameof(order));
+            }
 
-			if (!settings.IsActive || !settings.ReverseECommerceTransaction)
-				return;
+            var settings = await _settingsManager.GetAsync(order.StoreId);
 
-			using (var tracker = new SimpleTracker(settings.TrackingId, settings.TrackingDomain ?? string.Empty, CreateEnvironment()))
-			{
-				var list = new List<Task<TrackingResult>>();
+            if (!settings.IsActive || !settings.ReverseECommerceTransaction)
+                return;
 
-				var task = tracker.TrackAsync(ECommerceConverter.OrderToTransaction(order, true));
-				list.Add(task);
+            using (var tracker = new SimpleTracker(settings.TrackingId, CreateEnvironment()))
+            {
+                var list = new List<Task<TrackingResult>>();
 
-				foreach (var lineItem in order.Items)
-				{
-					var lineItemTask = tracker.TrackAsync(ECommerceConverter.LineItemToTransactionItem(order, lineItem, true));
-					list.Add(lineItemTask);
-				}
+                var task = tracker.TrackAsync(ECommerceConverter.OrderToTransaction(order, true));
+                list.Add(task);
 
-				await Task.WhenAll(list.ToArray());
-			}
-		}
-	}
+                foreach (var lineItem in order.Items)
+                {
+                    var lineItemTask = tracker.TrackAsync(ECommerceConverter.LineItemToTransactionItem(order, lineItem, true));
+                    list.Add(lineItemTask);
+                }
+
+                await Task.WhenAll(list.ToArray());
+            }
+        }
+    }
 }

@@ -1,11 +1,11 @@
 ﻿using System.Threading.Tasks;
-using VirtoCommerce.Domain.Order.Model;
+using VirtoCommerce.OrdersModule.Core.Model;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 {
     public interface IGoogleAnalyticsTransactionManager
     {
-		Task RevertTransaction(CustomerOrder order);
-		Task CreateTransaction(CustomerOrder origOrder);
-	}
+        Task RevertTransactionAsync(CustomerOrder order);
+        Task CreateTransactionAsync(CustomerOrder origOrder);
+    }
 }
