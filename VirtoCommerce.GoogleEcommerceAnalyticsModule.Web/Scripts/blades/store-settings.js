@@ -11,12 +11,12 @@
     }
 
     blade.refresh = function() {
-		blade.enableTracking = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.EnableTracking'; });
-		blade.createECommerceTransaction = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.CreateECommerceTransaction'; });
-		blade.reverseECommerceTransaction = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.ReverseECommerceTransaction'; });
+        blade.enableTracking = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.EnableTracking'; });
+        blade.createECommerceTransaction = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.CreateECommerceTransaction'; });
+        blade.reverseECommerceTransaction = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.ReverseECommerceTransaction'; });
 
-		blade.googleTagManagerId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleTagManagerId'; });
-		blade.googleAnalyticsTrackingId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId'; });
+        blade.googleTagManagerId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleTagManagerId'; });
+        blade.googleAnalyticsTrackingId = _.find(blade.currentEntities, function (x) { return x.name === 'GoogleEcommerceAnalytics.GoogleAnalyticsTrackingId'; });
     };
 
     function isDirty() {
@@ -28,11 +28,11 @@
         $scope.bladeClose();
     };
 
-	$scope.cancelChanges = function () {
-		$scope.bladeClose();
-	};
+    $scope.cancelChanges = function () {
+        $scope.bladeClose();
+    };
 
-    $scope.blade.headIcon = 'fa-database';
+    $scope.blade.headIcon = 'fa fa-database';
 
     blade.toolbarCommands = [
         {

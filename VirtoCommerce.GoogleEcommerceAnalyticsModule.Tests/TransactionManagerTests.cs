@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using Moq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
@@ -13,7 +14,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests
 
         protected CustomerOrder GetOrder()
         {
-            var customerObjectJson = System.IO.File.ReadAllText(@"MoqData\CustomerOrder.json");
+            var customerObjectJson = System.IO.File.ReadAllText(Path.Combine("MoqData", "CustomerOrder.json"));
 
             return Newtonsoft.Json.JsonConvert.DeserializeObject<CustomerOrder>(customerObjectJson);
         }
