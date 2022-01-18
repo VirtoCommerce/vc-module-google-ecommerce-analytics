@@ -18,9 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.csproj" />
-    <ProjectReference Include="..\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj" />
-    <ProjectReference Include="..\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.csproj" />
+    <ProjectReference Include="..\..\src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.csproj" />
+    <ProjectReference Include="..\..\src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj" />
+    <ProjectReference Include="..\..\src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

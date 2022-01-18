@@ -5,15 +5,15 @@ VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F7BC78F8-DBC8-4545-BCD5-95E7296A70DA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.csproj", "{08925A27-8F57-42B5-AF1B-6FE8C3A565A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Web", "src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.csproj", "{08925A27-8F57-42B5-AF1B-6FE8C3A565A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Core", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Core\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.csproj", "{D9E6CE00-72B7-494B-9669-DF47BDFEE8F0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Core", "src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.csproj", "{D9E6CE00-72B7-494B-9669-DF47BDFEE8F0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj", "{A3F23E92-42E1-46BA-BE43-9EF2B24E5A3E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Data", "src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj", "{A3F23E92-42E1-46BA-BE43-9EF2B24E5A3E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EB0D29F9-3208-42A4-B741-953209B20A43}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests", "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests\VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests.csproj", "{53796673-42BC-4D31-9348-A430C79C06CA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests", "tests\VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests\VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests.csproj", "{53796673-42BC-4D31-9348-A430C79C06CA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
