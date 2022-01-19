@@ -1,0 +1,29 @@
+# v1.0.0
+name: Release module
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install VirtoCommerce.GlobalTool
+        uses: VirtoCommerce/vc-github-actions/setup-vcbuild@master
+
+      - name: Setup Git Credentials
+        uses: VirtoCommerce/vc-github-actions/setup-git-credentials-github@master
+        with: 
+          githubToken: ${{ secrets.REPO_TOKEN }}
+      
+      - name: Run vc-build QuickRelease
+        run: vc-build QuickRelease -Force
+
+
