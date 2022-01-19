@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <id>VirtoCommerce.GoogleEcommerceAnalytics</id>
+  <version>3.200.0</version>
+  <version-tag />
+  <platformVersion>3.200.0</platformVersion>
+  <title>Ecommerce Google Analytics module</title>
+  <description>Provides integration between Ecommerce feature of Google Analytics and VirtoCommerce.</description>
+  <authors>
+    <author>Alexey Antonov</author>
+    <author>Egidijus Mažeika</author>
+  </authors>
+  <owners>
+    <owner>Virto Commerce</owner>
+  </owners>
+  <projectUrl>https://virtocommerce.com/apps/extensions/google-ecommerce-analytics-module</projectUrl>
+  <iconUrl>Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Content/logo.png</iconUrl>
+  <requireLicenseAcceptance>false</requireLicenseAcceptance>
+  <releaseNotes>First version.</releaseNotes>
+  <copyright>Copyright © 2011-2021 Virto Commerce. All rights reserved</copyright>
+  <tags>analytics</tags>
+  <assemblyFile>VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.dll</assemblyFile>
+  <moduleType>VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Module, VirtoCommerce.GoogleEcommerceAnalyticsModule.Web</moduleType>
+  <dependencies>
+    <dependency id="VirtoCommerce.Orders" version="3.200.0" />
+    <dependency id="VirtoCommerce.Store" version="3.200.0" />
+  </dependencies>
+  <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
+</module>
