@@ -5,6 +5,11 @@
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
+  <PropertyGroup>
+      <!-- Project is not a test project -->
+      <SonarQubeTestProject>false</SonarQubeTestProject>
+  </PropertyGroup>
+
   <ItemGroup>
     <Content Remove="Content\gtm-virtocommerce_v1.json" />
   </ItemGroup>
