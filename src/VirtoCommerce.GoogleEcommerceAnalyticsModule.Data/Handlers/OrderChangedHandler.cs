@@ -22,7 +22,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Handlers
                 {
                     Task.Factory.StartNew(s => ((IGoogleAnalyticsTransactionManager)s).CreateTransactionAsync(changedEntry.NewEntry), _gaTransactionManager, System.Threading.CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default).Unwrap().GetAwaiter().GetResult();
                 }
-                else if (changedEntry.EntryState == Platform.Core.Common.EntryState.Modified && changedEntry.NewEntry.Status == "Cancelled")
+                else if (changedEntry.EntryState == Platform.Core.Common.EntryState.Modified && changedEntry.NewEntry.Status != changedEntry.OldEntry.Status  && changedEntry.NewEntry.Status == "Cancelled")
                 {
                     Task.Factory.StartNew(s => ((IGoogleAnalyticsTransactionManager)s).RevertTransactionAsync(changedEntry.NewEntry), _gaTransactionManager, System.Threading.CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default).Unwrap().GetAwaiter().GetResult();
                 }
