@@ -8,10 +8,8 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
 {
 	public class GoogleAnalyticsSettings
 	{
-		public string TrackingId { get; set; }
-		public bool IsActive { get; set; }
-		public bool CreateECommerceTransaction { get; set; }
-		public bool ReverseECommerceTransaction { get; set; }
+		public bool EnableTracking { get; set; }
+		public string MeasurementId { get; set; }
 	}
 
 	public interface IGoogleAnalyticsSettingsManager

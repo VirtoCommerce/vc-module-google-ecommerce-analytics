@@ -19,8 +19,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="module.manifest">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Scripts\widgets\" />
   </ItemGroup>
 
 </Project>

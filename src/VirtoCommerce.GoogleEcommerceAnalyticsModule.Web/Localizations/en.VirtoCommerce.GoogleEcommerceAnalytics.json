@@ -1,49 +1,13 @@
 ﻿{
-	"google-ecommerce-analytics": {
-		"blades": {
-			"store-settings": {
-				"labels": {
-					"note": "Ecommerce Google Analytics module allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce.",
-					"is-active": "Is Active",
-					"gtm-id": "Google Tag Manager Id",
-					"ga-id": "Google Analytics Tracking Id",
-					"createECommerceTransaction": "Send ecommerce transaction in GA when order is created",
-					"reverseECommerceTransaction": "Reverse ecommerce transaction from GA when order is canceled"
-				},
-				"placeholders": {
-					"gtm-id": "Enter Google Tag Manager Id",
-					"ga-id": "Enter Google Analytics Tracking Id"
-				}
-			}
-		},
-		"widgets": {
-			"store-settings": {
-				"title": "Ecommerce Google Analytics",
-				"blade-subtitle": "Ecommerce Google Analytics"
-			}
-		}
-	},
 	"settings": {
-		"GoogleEcommerceAnalytics": {
+		"GoogleAnalytics4": {
 			"EnableTracking": {
-				"title": "Is Active",
-				"description": "Flag activating Enhanced Ecommerce tracking in store"
+				"title": "Enable",
+				"description": "Activating Google Analytics 4 for the Store"
 			},
-			"GoogleTagManagerId": {
-				"title": "Google Tag Manager ID",
-				"description": "GTM-XXXXXX"
-			},
-			"GoogleAnalyticsTrackingId": {
-				"title": "Google Analytics Tracking ID",
-				"description": "UA-XXXXXXXX-X"
-			},
-			"CreateECommerceTransaction": {
-				"title": "Send ecommerce transaction in GA when order is created",
-				"description": ""
-			},
-			"ReverseECommerceTransaction": {
-				"title": "Reverse ecommerce transaction from GA when order is canceled",
-				"description": ""
+			"MeasurementId": {
+				"title": "Measurement Id",
+				"description": "G-XXXXXXXXX"
 			}
 		}
 	}
