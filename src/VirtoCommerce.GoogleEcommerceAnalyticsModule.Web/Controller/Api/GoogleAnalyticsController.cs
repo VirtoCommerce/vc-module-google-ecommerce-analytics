@@ -9,7 +9,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Controller.Api
     [Route("api/googleanalytics")]
     public class GoogleAnalyticsController
     {
-        private IGoogleAnalyticsSettingsManager _settings;
+        private readonly IGoogleAnalyticsSettingsManager _settings;
 
         public GoogleAnalyticsController(IGoogleAnalyticsSettingsManager settings)
         {
