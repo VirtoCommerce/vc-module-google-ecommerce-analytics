@@ -1,59 +1,50 @@
-
-# Overview
-
-Google Analytics offers two levels of detail in tracking ecommerce:
-
-1. **Basic Ecommerce Tracking** that tracks only completed purchases;
-
-1. **Enhanced Ecommerce Tracking** offers expanded tracking of user's interactions with products all through the site.
-
-![Fig. Enhanced](docs/media/screen-enhanced.png)
-
-**Google Ecommerce Analytics module** allows you to use the newly launched feature of Google Analytics – Enhanced Ecommerce. You can track the user behavior across your e-commerce store starting from product views to thank you page.
-
-The module consists of two parts:
-
-1. Google Analytics module itself;
-1. Snippets that should be added to the theme if Google Analytics functionality is needed. The Snippet file allows measuring product impressions, view product details and purchases.
-
-Google Ecommerce Analytics Module can measure the following data:
-
-1. **Product impressions**. The impressions action is used to record impressions of products as users see them throughout the site;
-1. **View product details**. The detail action represents viewing a product detail page;
-1. **Purchase**.
+# Integration with Google Analytics 4
+Google Analytics 4 module allows you to assign Google Analytics Measurement Id for a Store and measure traffic, ecommerce events to collect information about the shopping behaviour of your users.
 
 ## Key Features
+1. Store Configuration.
+1. Measure ecommerce with Vue B2B Theme and Virto Storefront.
+1. Ready for integration with other sales channels.
 
-1. Quick & Easy installation;
-1. Supports Enhanced Ecommerce tracking with Google Tag Manager;
-1. Measure Product Impressions;
-1. Measure Views of Product Details;
-1. Measure Purchases.
+## Setup
+1. [Create and Google Analytics Account](https://support.google.com/analytics/answer/9304153)
+1. Go to a Store Settings, select Settings and activate Google Analytics 4 and enter your Measurement Id.
+
+![How to find Measurement Id](https://storage.googleapis.com/support-kms-prod/4vzOnPW93ZjrGTZKfeIJYHXXPmpfCmc0UMHy)
+
+## Integration with Virto Storefront
+Virto Storefront and Vue B2B Theme has native integration with Google Analytics 4 module. 
+Once you click Save for Store Settings, the Google Analytics tracking will be activated.
+
+We measures the following actions:
+
+* Select an item from a category
+* View product details
+* Add/remove a product from a shopping cart
+* Initiate the checkout process
+* Make purchases or refunds
+* Apply promotions
 
 ## Documentation
-
-* [VC Ecommerce Google Analytics Module](/docs/index.md)
-
-* [View on Github](https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics)
+* [Google Analytics 4](https://developers.google.com/analytics/devguides/collection/ga4)
+* [Module Documentation](https://docs.virtocommerce.org/modules/google-ecommerce-analytics/)
+* [View on GitHub](docs/index.md)
 
 ## References
-
-* Deploy: https://virtocommerce.com/docs/latest/developer-guide/deploy-module-from-source-code/
-* Installation: https://www.virtocommerce.com/docs/latest/user-guide/modules/
+* Deployment: https://docs.virtocommerce.org/docs/latest/developer-guide/deploy-module-from-source-code/
+* Installation: https://docs.virtocommerce.org/docs/latest/user-guide/modules/
 * Home: https://virtocommerce.com
 * Community: https://www.virtocommerce.org
-* [Download Latest Release](https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics/releases)
+* [Download Latest Release](https://github.com/VirtoCommerce/google-ecommerce-analytics/releases/latest)
+
 ## License
+Copyright (c) Virto Solutions LTD.  All rights reserved.
 
-Copyright (c) Virtosoftware Ltd.  All rights reserved.
-
-Licensed under the Virto Commerce Open Software License (the "License"); you
+This software is licensed under the Virto Commerce Open Software License (the "License"); you
 may not use this file except in compliance with the License. You may
-obtain a copy of the License at
+obtain a copy of the License at http://virtocommerce.com/opensourcelicense.
 
-http://virtocommerce.com/opensourcelicense
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
+Unless required by the applicable law or agreed to in written form, the software
+distributed under the License is provided on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
 implied.

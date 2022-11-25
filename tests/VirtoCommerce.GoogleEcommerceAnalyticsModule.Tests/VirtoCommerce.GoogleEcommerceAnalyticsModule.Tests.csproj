@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="3.1.0">
+    <PackageReference Include="coverlet.collector" Version="3.2.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -21,12 +21,6 @@
     <ProjectReference Include="..\..\src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.csproj" />
     <ProjectReference Include="..\..\src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data\VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.csproj" />
     <ProjectReference Include="..\..\src\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web\VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="MoqData\CustomerOrder.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

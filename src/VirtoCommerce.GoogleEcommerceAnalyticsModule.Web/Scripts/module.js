@@ -8,11 +8,5 @@ if (AppDependencies !== undefined) {
 angular.module(moduleName, [])
     .run(['platformWebApp.widgetService',
         function (widgetService) {
-            // themes widget in STORE details
-            widgetService.registerWidget({
-                controller: 'virtoCommerce.googleEcommerceAnalyticsModule.storeSettingsWidgetController',
-                template: 'Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Scripts/widgets/store-settings-widget.tpl.html',
-                permission: 'content:read'
-            }, 'storeDetail');
         }]);
 
