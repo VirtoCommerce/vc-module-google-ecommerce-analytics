@@ -8,6 +8,10 @@ Google Analytics 4 module allows you to assign Google Analytics Measurement Id f
 1. Store Configuration.
 1. Measure ecommerce with Vue B2B Theme and Virto Storefront via Google tag.
 1. Ready for integration with other sales channels.
+1. Application menu.
+
+## Screenshots
+![Google Analytics 4](media/ga4-realtime.png)
 
 ## Setup
 First, [Create and configure Google Analytics 4 Account](https://support.google.com/analytics/answer/9304153)
@@ -36,6 +40,11 @@ We measures the following actions:
 * Initiate the checkout process
 * Make purchases or refunds
 * Apply promotions
+
+## Application Menu 
+The module adds Google Analytics link into Application menu. It redirects to Google Analytics Dashboard. You could customize Google Analytics Dashboard Url in Platform Settings.
+
+![Google Analytics 4 App Menu](media/app-menu.png)
 
 ## Integration with Custom Application
 You can use either Store settings or Rest API to request Google Analytics configuration for store.

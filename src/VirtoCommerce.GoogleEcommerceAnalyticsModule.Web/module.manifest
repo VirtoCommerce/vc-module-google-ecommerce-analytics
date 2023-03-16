@@ -1,11 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <id>VirtoCommerce.GoogleEcommerceAnalytics</id>
-  <version>4.1.0</version>
+  <version>4.2.0</version>
   <version-tag />
   <platformVersion>3.200.0</platformVersion>
+
+  <dependencies>
+    <dependency id="VirtoCommerce.Store" version="3.200.0" />
+  </dependencies>
+
+  <apps>
+    <app id="ga4">
+      <title>Google Analytics</title>
+      <description>Google Analytics dashboard</description>
+      <iconUrl>/apps/ga4/ic_analytics.svg</iconUrl>
+      <permission>googleanalytics:access</permission>
+    </app>
+  </apps>
+  
   <title>Google Analytics 4</title>
   <description>Allows you active Measurement Id for a Store and measure traffic and ecommerce events to collect information about the shopping behavior of your users.</description>
+  
   <authors>
     <author>Oleg Zhuk</author>
   </authors>
@@ -20,8 +35,5 @@
   <tags>analytics</tags>
   <assemblyFile>VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Module, VirtoCommerce.GoogleEcommerceAnalyticsModule.Web</moduleType>
-  <dependencies>
-    <dependency id="VirtoCommerce.Store" version="3.200.0" />
-  </dependencies>
   <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
 </module>

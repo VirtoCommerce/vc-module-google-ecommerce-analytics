@@ -8,6 +8,10 @@
 			"MeasurementId": {
 				"title": "Measurement Id",
 				"description": "G-XXXXXXXXX"
+			},
+			"GoogleAnalyticsUrl": {
+				"title": "Google Analytics Dashboard Url",
+				"description": "Google Analytics Dashboard Url for redirect from App Menu"
 			}
 		}
 	}

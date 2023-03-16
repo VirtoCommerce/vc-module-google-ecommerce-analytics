@@ -5,8 +5,20 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
 {
     public static class ModuleConstants
     {
+        public static class Security
+        {
+            public static class Permissions
+            {
+                public const string Access = "googleanalytics:access";
+
+                public static string[] AllPermissions { get; } = { Access };
+            }
+        }
+
         public static class Settings
         {
+            public const string DefaultGoogleAnalyticsUrl = "https://analytics.google.com/analytics/web/";
+
             public static class General
             {
                 public static SettingDescriptor EnableTracking { get; } = new SettingDescriptor
@@ -23,12 +35,21 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     ValueType = SettingValueType.ShortText
                 };
 
+                public static SettingDescriptor GoogleAnalyticsUrl { get; } = new SettingDescriptor
+                {
+                    Name = "GoogleAnalytics4.GoogleAnalyticsUrl",
+                    GroupName = "Google Analytics 4",
+                    ValueType = SettingValueType.ShortText,
+                    DefaultValue = DefaultGoogleAnalyticsUrl
+                };
+
                 public static IEnumerable<SettingDescriptor> AllSettings
                 {
                     get
                     {
                         yield return EnableTracking;
                         yield return MeasurementId;
+                        yield return GoogleAnalyticsUrl;
                     }
                 }
             }
