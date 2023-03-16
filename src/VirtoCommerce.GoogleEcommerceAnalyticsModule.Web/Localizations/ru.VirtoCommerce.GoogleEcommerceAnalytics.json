@@ -8,6 +8,10 @@
 			"MeasurementId": {
 				"title": "Идентификатор",
 				"description": "G-XXXXXXXXX"
+			},
+			"GoogleAnalyticsUrl": {
+				"title": "Адрес панели инструментов Google Analytics",
+				"description": "Адрес панели инструментов Google Analytics для перенаправления из меню Приложения"
 			}
 		}
 	}
