@@ -1,18 +1,18 @@
-﻿{
-	"settings": {
-		"GoogleAnalytics4": {
-			"EnableTracking": {
-				"title": "Включить",
-				"description": "Активирует Google Analytics 4 для Магазина"
-			},
-			"MeasurementId": {
-				"title": "Идентификатор",
-				"description": "G-XXXXXXXXX"
-			},
-			"GoogleAnalyticsUrl": {
-				"title": "Адрес панели инструментов Google Analytics",
-				"description": "Адрес панели инструментов Google Analytics для перенаправления из меню Приложения"
-			}
-		}
-	}
+{
+  "settings": {
+    "GoogleAnalytics4": {
+      "EnableTracking": {
+        "title": "Включить",
+        "description": "Активирует Google Analytics 4 для Магазина"
+      },
+      "MeasurementId": {
+        "title": "Идентификатор",
+        "description": "G-XXXXXXXXX"
+      },
+      "GoogleAnalyticsUrl": {
+        "title": "Адрес панели инструментов Google Analytics",
+        "description": "Адрес панели инструментов Google Analytics для перенаправления из меню Приложения"
+      }
+    }
+  }
 }
