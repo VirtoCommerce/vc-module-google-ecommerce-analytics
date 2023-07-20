@@ -1,18 +1,18 @@
-﻿{
-	"settings": {
-		"GoogleAnalytics4": {
-			"EnableTracking": {
-				"title": "Enable",
-				"description": "Activating Google Analytics 4 for the Store"
-			},
-			"MeasurementId": {
-				"title": "Measurement Id",
-				"description": "G-XXXXXXXXX"
-			},
-			"GoogleAnalyticsUrl": {
-				"title": "Google Analytics Dashboard Url",
-				"description": "Google Analytics Dashboard Url for redirect from App Menu"
-			}
-		}
-	}
+{
+  "settings": {
+    "GoogleAnalytics4": {
+      "EnableTracking": {
+        "title": "Enable",
+        "description": "Activating Google Analytics 4 for the Store"
+      },
+      "MeasurementId": {
+        "title": "Measurement Id",
+        "description": "G-XXXXXXXXX"
+      },
+      "GoogleAnalyticsUrl": {
+        "title": "Google Analytics Dashboard Url",
+        "description": "Google Analytics Dashboard Url for redirect from App Menu"
+      }
+    }
+  }
 }

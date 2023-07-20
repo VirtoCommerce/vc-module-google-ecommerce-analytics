@@ -1,7 +1,8 @@
+using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
@@ -22,7 +23,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
         public void PostInitialize(IApplicationBuilder appBuilder)
         {
             var serviceProvider = appBuilder.ApplicationServices;
-
 
             // Register permissions
             var permissionsRegistrar = serviceProvider.GetRequiredService<IPermissionsRegistrar>();
