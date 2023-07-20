@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
-using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
 using VirtoCommerce.Platform.Core.Settings;
+using GoogleSettings = VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Controllers.Api
 {
@@ -31,10 +33,12 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Controllers.Api
         [Authorize(ModuleConstants.Security.Permissions.Access)]
         public ActionResult Redirect()
         {
-            var redirectUrl = _settingsManager.GetValue(ModuleConstants.Settings.General.GoogleAnalyticsUrl.Name, ModuleConstants.Settings.DefaultGoogleAnalyticsUrl);
+            var redirectUrl = _settingsManager.GetValue<string>(GoogleSettings.GoogleAnalyticsUrl);
 
             if (string.IsNullOrEmpty(redirectUrl))
-                return NotFound("GoogleAnalyticsUrl is not configured in Platfortm Settings");
+            {
+                return NotFound("GoogleAnalyticsUrl is not configured in Platform Settings");
+            }
 
             return Redirect(redirectUrl);
         }
