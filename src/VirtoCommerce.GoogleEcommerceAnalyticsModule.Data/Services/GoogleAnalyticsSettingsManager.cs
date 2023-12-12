@@ -27,10 +27,10 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services
                 return retVal;
             }
 
-            retVal.MeasurementId = store.Settings.GetSettingValue(GoogleSettings.MeasurementId.Name, string.Empty);
+            retVal.MeasurementId = store.Settings.GetValue<string>(GoogleSettings.MeasurementId);
             if (!string.IsNullOrEmpty(retVal.MeasurementId))
             {
-                retVal.EnableTracking = store.Settings.GetSettingValue(GoogleSettings.EnableTracking.Name, false);
+                retVal.EnableTracking = store.Settings.GetValue<bool>(GoogleSettings.EnableTracking);
             }
 
             return retVal;
