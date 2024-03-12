@@ -25,14 +25,16 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                 {
                     Name = "GoogleAnalytics4.EnableTracking",
                     GroupName = "Google Analytics 4",
-                    ValueType = SettingValueType.Boolean
+                    ValueType = SettingValueType.Boolean,
+                    IsPublic = true
                 };
 
                 public static SettingDescriptor MeasurementId { get; } = new SettingDescriptor
                 {
                     Name = "GoogleAnalytics4.MeasurementId",
                     GroupName = "Google Analytics 4",
-                    ValueType = SettingValueType.ShortText
+                    ValueType = SettingValueType.ShortText,
+                    IsPublic = true
                 };
 
                 public static SettingDescriptor GoogleAnalyticsUrl { get; } = new SettingDescriptor
