@@ -3,15 +3,15 @@
     "GoogleAnalytics4": {
       "EnableTracking": {
         "title": "Enable",
-        "description": "Activating Google Analytics 4 for the Store"
+        "description": "Activating Google Analytics 4 for the store"
       },
       "MeasurementId": {
         "title": "Measurement Id",
         "description": "G-XXXXXXXXX"
       },
       "GoogleAnalyticsUrl": {
-        "title": "Google Analytics Dashboard Url",
-        "description": "Google Analytics Dashboard Url for redirect from App Menu"
+        "title": "Google Analytics dashboard URL",
+        "description": "Google Analytics dashboard URL for redirect from App Menu"
       }
     }
   }

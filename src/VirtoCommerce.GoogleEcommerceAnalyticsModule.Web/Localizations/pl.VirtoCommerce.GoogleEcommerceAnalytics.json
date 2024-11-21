@@ -1,0 +1,18 @@
+{
+  "settings": {
+    "GoogleAnalytics4": {
+      "EnableTracking": {
+        "title": "Włącz",
+        "description": "Aktywacja Google Analytics 4 dla sklepu"
+      },
+      "MeasurementId": {
+        "title": "Identyfikator pomiaru",
+        "description": "G-XXXXXXXXX"
+      },
+      "GoogleAnalyticsUrl": {
+        "title": "URL panelu Google Analytics",
+        "description": "URL panelu Google Analytics do przekierowania z menu aplikacji"
+      }
+    }
+  }
+}
