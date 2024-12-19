@@ -1,0 +1,18 @@
+{
+  "settings": {
+    "GoogleAnalytics4": {
+      "EnableTracking": {
+        "title": "Aktivieren",
+        "description": "Google Analytics 4 für das Geschäft aktivieren"
+      },
+      "MeasurementId": {
+        "title": "Mess-ID",
+        "description": "G-XXXXXXXXX"
+      },
+      "GoogleAnalyticsUrl": {
+        "title": "Google Analytics-Dashboard-URL",
+        "description": "Google Analytics-Dashboard-URL für die Umleitung aus dem App-Menü"
+      }
+    }
+  }
+}

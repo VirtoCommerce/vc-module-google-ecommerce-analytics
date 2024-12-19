@@ -1,0 +1,18 @@
+{
+  "settings": {
+    "GoogleAnalytics4": {
+      "EnableTracking": {
+        "title": "有効にする",
+        "description": "ストア用の Google Analytics 4 を有効化"
+      },
+      "MeasurementId": {
+        "title": "測定 ID",
+        "description": "G-XXXXXXXXX"
+      },
+      "GoogleAnalyticsUrl": {
+        "title": "Google Analytics ダッシュボード URL",
+        "description": "アプリ メニューからリダイレクトするための Google Analytics ダッシュボード URL"
+      }
+    }
+  }
+}
