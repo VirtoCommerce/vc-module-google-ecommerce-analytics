@@ -3,15 +3,15 @@
     "GoogleAnalytics4": {
       "EnableTracking": {
         "title": "Включить",
-        "description": "Активирует Google Analytics 4 для Магазина"
+        "description": "Включение Google Analytics 4 для магазина"
       },
       "MeasurementId": {
-        "title": "Идентификатор",
+        "title": "Идентификатор измерений",
         "description": "G-XXXXXXXXX"
       },
       "GoogleAnalyticsUrl": {
-        "title": "Адрес панели инструментов Google Analytics",
-        "description": "Адрес панели инструментов Google Analytics для перенаправления из меню Приложения"
+        "title": "URL панели управления Google Analytics",
+        "description": "URL панели управления Google Analytics для перенаправления из меню приложения"
       }
     }
   }

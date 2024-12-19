@@ -1,0 +1,18 @@
+{
+  "settings": {
+    "GoogleAnalytics4": {
+      "EnableTracking": {
+        "title": "启用",
+        "description": "为商店启用 Google Analytics 4"
+      },
+      "MeasurementId": {
+        "title": "测量 ID",
+        "description": "G-XXXXXXXXX"
+      },
+      "GoogleAnalyticsUrl": {
+        "title": "Google Analytics 仪表板 URL",
+        "description": "从应用菜单重定向的 Google Analytics 仪表板 URL"
+      }
+    }
+  }
+}
