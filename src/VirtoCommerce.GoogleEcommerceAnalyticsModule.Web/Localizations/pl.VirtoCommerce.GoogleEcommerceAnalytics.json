@@ -9,6 +9,10 @@
         "title": "Identyfikator pomiaru",
         "description": "G-XXXXXXXXX"
       },
+      "GTMContainerId": {
+        "title": "Identyfikator kontenera GTM",
+        "description": "GTM-XXXXXXX"
+      },
       "GoogleAnalyticsUrl": {
         "title": "URL panelu Google Analytics",
         "description": "URL panelu Google Analytics do przekierowania z menu aplikacji"

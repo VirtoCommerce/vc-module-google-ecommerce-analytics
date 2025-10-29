@@ -9,6 +9,10 @@
         "title": "测量 ID",
         "description": "G-XXXXXXXXX"
       },
+      "GTMContainerId": {
+        "title": "GTM 容器 ID",
+        "description": "GTM-XXXXXXX"
+      },
       "GoogleAnalyticsUrl": {
         "title": "Google Analytics 仪表板 URL",
         "description": "从应用菜单重定向的 Google Analytics 仪表板 URL"

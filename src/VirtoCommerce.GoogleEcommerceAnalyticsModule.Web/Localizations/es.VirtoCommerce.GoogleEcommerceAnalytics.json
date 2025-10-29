@@ -9,6 +9,10 @@
         "title": "Id de medición",
         "description": "G-XXXXXXXXX"
       },
+      "GTMContainerId": {
+        "title": "Id de contenedor GTM",
+        "description": "GTM-XXXXXXX"
+      },
       "GoogleAnalyticsUrl": {
         "title": "URL del panel de control de Google Analytics",
         "description": "URL del panel de control de Google Analytics para redirigir desde el menú de la aplicación"
