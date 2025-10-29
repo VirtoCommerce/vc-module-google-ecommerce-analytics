@@ -9,7 +9,7 @@
         "title": "Идентификатор измерений",
         "description": "G-XXXXXXXXX"
       },
-      "GTMContainerId": {
+      "GtmContainerId": {
         "title": "Идентификатор контейнера GTM",
         "description": "GTM-XXXXXXX"
       },

@@ -9,7 +9,7 @@
         "title": "Measurement Id",
         "description": "Specify the Google Analytics measurement ID (G-XXXXXXXXX)"
       },
-      "GTMContainerId": {
+      "GtmContainerId": {
         "title": "GTM Container Id",
         "description": "Specify the Google Tag Manager container ID (GTM-XXXXXXX)"
       },

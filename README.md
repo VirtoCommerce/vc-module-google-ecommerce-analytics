@@ -50,7 +50,7 @@ Google Tag Manager provides a centralized way to manage all your tracking tags w
 1. Go to Store Settings in Virto Commerce Back Office
 1. Find the **Google Analytics 4** section
 1. Enable **GoogleAnalytics4.EnableTracking**
-1. Enter your **GTM Container Id** in **GoogleAnalytics4.GTMContainerId** (e.g., `GTM-XXXXXXX`)
+1. Enter your **GTM Container Id** in **GoogleAnalytics4.GtmContainerId** (e.g., `GTM-XXXXXXX`)
 1. *(Optional)* Enter your **Measurement Id** in **GoogleAnalytics4.MeasurementId** if you want both GTM and direct GA4 tracking
 1. Click **Save**
 
@@ -62,7 +62,7 @@ Google Tag Manager provides a centralized way to manage all your tracking tags w
 - **Load Order**: GTM loads first, ensuring proper event sequencing for all tags
 
 #### Important Notes
-- If both **GTMContainerId** and **MeasurementId** are provided, GTM will load first, followed by direct GA4
+- If both **GtmContainerId** and **MeasurementId** are provided, GTM will load first, followed by direct GA4
 - The module automatically pushes ecommerce events to `dataLayer` which GTM can capture
 - All standard ecommerce events (add_to_cart, purchase, etc.) are available in `dataLayer`
 

@@ -9,7 +9,7 @@
         "title": "Id de medición",
         "description": "G-XXXXXXXXX"
       },
-      "GTMContainerId": {
+      "GtmContainerId": {
         "title": "Id de contenedor GTM",
         "description": "GTM-XXXXXXX"
       },
