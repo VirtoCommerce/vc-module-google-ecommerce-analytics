@@ -9,6 +9,10 @@
         "title": "Mess-ID",
         "description": "G-XXXXXXXXX"
       },
+      "GtmContainerId": {
+        "title": "GTM-Container-ID",
+        "description": "GTM-XXXXXXX"
+      },
       "GoogleAnalyticsUrl": {
         "title": "Google Analytics-Dashboard-URL",
         "description": "Google Analytics-Dashboard-URL für die Umleitung aus dem App-Menü"

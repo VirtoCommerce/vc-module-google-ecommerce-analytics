@@ -4,5 +4,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models
     {
         public bool EnableTracking { get; set; }
         public string MeasurementId { get; set; }
+        public string GtmContainerId { get; set; }
     }
 }

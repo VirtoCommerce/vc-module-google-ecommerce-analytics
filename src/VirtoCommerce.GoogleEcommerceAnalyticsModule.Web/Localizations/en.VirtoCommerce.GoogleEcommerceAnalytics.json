@@ -9,6 +9,10 @@
         "title": "Measurement Id",
         "description": "Specify the Google Analytics measurement ID (G-XXXXXXXXX)"
       },
+      "GtmContainerId": {
+        "title": "GTM Container Id",
+        "description": "Specify the Google Tag Manager container ID (GTM-XXXXXXX)"
+      },
       "GoogleAnalyticsUrl": {
         "title": "Google Analytics dashboard URL",
         "description": "Provide the URL for the Google Analytics dashboard for redirecting from App Menu"

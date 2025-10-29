@@ -37,6 +37,14 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     IsPublic = true
                 };
 
+                public static SettingDescriptor GtmContainerId { get; } = new SettingDescriptor
+                {
+                    Name = "GoogleAnalytics4.GtmContainerId",
+                    GroupName = "Google Analytics 4",
+                    ValueType = SettingValueType.ShortText,
+                    IsPublic = true
+                };
+
                 public static SettingDescriptor GoogleAnalyticsUrl { get; } = new SettingDescriptor
                 {
                     Name = "GoogleAnalytics4.GoogleAnalyticsUrl",
@@ -52,6 +60,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                         yield return EnableTracking;
                         yield return MeasurementId;
                         yield return GoogleAnalyticsUrl;
+                        yield return GtmContainerId;
                     }
                 }
             }
@@ -62,6 +71,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                 {
                     yield return General.EnableTracking;
                     yield return General.MeasurementId;
+                    yield return General.GtmContainerId;
                 }
             }
         }
