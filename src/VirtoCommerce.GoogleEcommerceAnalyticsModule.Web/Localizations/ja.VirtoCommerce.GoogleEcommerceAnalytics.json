@@ -9,6 +9,10 @@
         "title": "測定 ID",
         "description": "G-XXXXXXXXX"
       },
+      "GtmContainerId": {
+        "title": "GTM コンテナ ID",
+        "description": "GTM-XXXXXXX"
+      },
       "GoogleAnalyticsUrl": {
         "title": "Google Analytics ダッシュボード URL",
         "description": "アプリ メニューからリダイレクトするための Google Analytics ダッシュボード URL"
