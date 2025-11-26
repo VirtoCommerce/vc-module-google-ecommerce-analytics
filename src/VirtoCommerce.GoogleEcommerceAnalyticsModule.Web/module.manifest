@@ -6,7 +6,7 @@
 
   <platformVersion>3.916.0-alpha.13164-vcst-4203-cleanup</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Store" version="3.823.0-alpha.763-vcst-4203-cleanup" />
+    <dependency id="VirtoCommerce.Store" version="3.823.0-alpha.766-vcst-4203-cleanup" />
   </dependencies>
 
   <apps>
