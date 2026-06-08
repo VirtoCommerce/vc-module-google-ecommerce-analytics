@@ -13,7 +13,7 @@
     <app id="ga4">
       <title>Google Analytics</title>
       <description>Google Analytics dashboard</description>
-      <iconUrl>/apps/ga4/logo.svg</iconUrl>
+      <iconUrl>/apps/ga4/ic_analytics.svg</iconUrl>
       <permission>googleanalytics:access</permission>
     </app>
   </apps>
@@ -26,7 +26,7 @@
     <owner>Virto Commerce</owner>
   </owners>
   <projectUrl>https://github.com/VirtoCommerce/vc-module-google-ecommerce-analytics</projectUrl>
-  <iconUrl>Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Content/logo.png</iconUrl>
+  <iconUrl>Modules/$(VirtoCommerce.GoogleEcommerceAnalytics)/Content/logo.svg</iconUrl>
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
   <releaseNotes>First version.</releaseNotes>
   <copyright>Copyright © 2011-2026 Virto Commerce. All rights reserved</copyright>
