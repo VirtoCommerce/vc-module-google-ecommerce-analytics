@@ -13,7 +13,7 @@
     <app id="ga4">
       <title>Google Analytics</title>
       <description>Google Analytics dashboard</description>
-      <iconUrl>/apps/ga4/ic_analytics.svg</iconUrl>
+      <iconUrl>/apps/ga4/logo.svg</iconUrl>
       <permission>googleanalytics:access</permission>
     </app>
   </apps>
