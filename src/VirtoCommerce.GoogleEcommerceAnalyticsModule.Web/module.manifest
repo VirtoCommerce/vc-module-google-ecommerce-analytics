@@ -4,9 +4,9 @@
   <version>4.1002.0</version>
   <version-tag />
 
-  <platformVersion>3.1002.0</platformVersion>
+  <platformVersion>3.1039.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Store" version="3.1000.0" />
+    <dependency id="VirtoCommerce.Store" version="3.1005.0" />
   </dependencies>
 
   <apps>
