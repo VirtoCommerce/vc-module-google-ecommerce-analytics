@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
@@ -13,6 +14,50 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
 
                 public static string[] AllPermissions { get; } = { Access };
             }
+        }
+
+        public static class EventNames
+        {
+            public const string Search = "search";
+            public const string ViewSearchResults = "view_search_results";
+            public const string ViewItem = "view_item";
+            public const string Login = "login";
+            public const string SignUp = "sign_up";
+            public const string AddToCart = "add_to_cart";
+            public const string Purchase = "purchase";
+        }
+
+        public static class UserDimensions
+        {
+            public const string ContactId = "contact_id";
+            public const string OrganizationId = "organization_id";
+            public const string OrganizationName = "organization_name";
+            public const string IsSalesRep = "is_sales_rep";
+            public const string SessionKind = "session_kind";
+
+            public static string[] AllNames { get; } = { ContactId, OrganizationId, OrganizationName, IsSalesRep, SessionKind };
+        }
+
+        public static class SessionKinds
+        {
+            public const string Self = "self";
+            public const string Impersonated = "impersonated";
+        }
+
+        public static class Dimensions
+        {
+            public const string SearchTerm = "searchTerm";
+            public const string ItemId = "itemId";
+            public const string ItemName = "itemName";
+            public const string ItemListName = "itemListName";
+            public const string EventName = "eventName";
+            public const string DateHour = "dateHour";
+        }
+
+        public static class SortBy
+        {
+            public const string Date = "date";
+            public const string Count = "count";
         }
 
         public static class Settings
@@ -65,6 +110,55 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                 }
             }
 
+            public static class DataApi
+            {
+                public static SettingDescriptor PropertyId { get; } = new SettingDescriptor
+                {
+                    Name = "GoogleAnalytics4.DataApi.PropertyId",
+                    GroupName = "Google Analytics 4",
+                    ValueType = SettingValueType.ShortText
+                };
+
+                public static SettingDescriptor ServiceAccountJson { get; } = new SettingDescriptor
+                {
+                    Name = "GoogleAnalytics4.DataApi.ServiceAccountJson",
+                    GroupName = "Google Analytics 4",
+                    ValueType = SettingValueType.SecureString
+                };
+
+                public static SettingDescriptor CacheTtlMinutes { get; } = new SettingDescriptor
+                {
+                    Name = "GoogleAnalytics4.DataApi.CacheTtlMinutes",
+                    GroupName = "Google Analytics 4",
+                    ValueType = SettingValueType.PositiveInteger,
+                    DefaultValue = 60
+                };
+
+                public static SettingDescriptor SampleDataEnabled { get; } = new SettingDescriptor
+                {
+                    Name = "GoogleAnalytics4.DataApi.SampleDataEnabled",
+                    GroupName = "Google Analytics 4",
+                    ValueType = SettingValueType.Boolean,
+                    DefaultValue = false
+                };
+
+                public static IEnumerable<SettingDescriptor> AllSettings
+                {
+                    get
+                    {
+                        yield return PropertyId;
+                        yield return ServiceAccountJson;
+                        yield return CacheTtlMinutes;
+                        yield return SampleDataEnabled;
+                    }
+                }
+            }
+
+            public static IEnumerable<SettingDescriptor> AllSettings
+            {
+                get { return General.AllSettings.Concat(DataApi.AllSettings); }
+            }
+
             public static IEnumerable<SettingDescriptor> StoreLevelSettings
             {
                 get
@@ -72,6 +166,10 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     yield return General.EnableTracking;
                     yield return General.MeasurementId;
                     yield return General.GtmContainerId;
+                    yield return DataApi.PropertyId;
+                    yield return DataApi.ServiceAccountJson;
+                    yield return DataApi.CacheTtlMinutes;
+                    yield return DataApi.SampleDataEnabled;
                 }
             }
         }
