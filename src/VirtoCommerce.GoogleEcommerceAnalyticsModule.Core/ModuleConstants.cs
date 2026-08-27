@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
 {
