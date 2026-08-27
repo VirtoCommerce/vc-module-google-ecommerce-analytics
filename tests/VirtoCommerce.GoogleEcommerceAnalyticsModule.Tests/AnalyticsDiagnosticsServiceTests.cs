@@ -98,26 +98,6 @@ public class AnalyticsDiagnosticsServiceTests
     }
 
     [Fact]
-    public async Task RunAsync_SampleMode_WarnsAndSkipsGoogleStages()
-    {
-        SetupSettings(new AnalyticsDataApiSettings { PropertyId = PropertyId, SampleDataEnabled = true });
-        var service = CreateService();
-
-        var result = await service.RunAsync(StoreId, CreateRequest());
-
-        AssertStageOrder(result);
-        var configuration = GetCheck(result, Stages.Configuration);
-        Assert.Equal(Statuses.Warning, configuration.Status);
-        Assert.Contains("Sample data mode", configuration.Message);
-        Assert.All(result.Checks.Skip(1), x =>
-        {
-            Assert.Equal(Statuses.Skipped, x.Status);
-            Assert.Contains("sample data mode", x.Message);
-        });
-        _reportClientMock.VerifyNoOtherCalls();
-    }
-
-    [Fact]
     public async Task RunAsync_NoPropertyId_FailsConfigurationAndSkipsRest()
     {
         SetupSettings(new AnalyticsDataApiSettings());
@@ -129,7 +109,11 @@ public class AnalyticsDiagnosticsServiceTests
         var configuration = GetCheck(result, Stages.Configuration);
         Assert.Equal(Statuses.Failed, configuration.Status);
         Assert.Contains("PropertyId", configuration.Message);
-        Assert.All(result.Checks.Skip(1), x => Assert.Equal(Statuses.Skipped, x.Status));
+        Assert.All(result.Checks.Skip(1), x =>
+        {
+            Assert.Equal(Statuses.Skipped, x.Status);
+            Assert.Contains("configuration check failed", x.Message);
+        });
         _reportClientMock.VerifyNoOtherCalls();
     }
 

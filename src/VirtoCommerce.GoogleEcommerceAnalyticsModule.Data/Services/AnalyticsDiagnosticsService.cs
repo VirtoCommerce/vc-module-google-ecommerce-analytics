@@ -66,9 +66,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         var settings = await CheckConfigurationAsync(storeId, checks);
         if (settings == null)
         {
-            SkipRemainingStages(checks, checks[0].Status == Statuses.Warning
-                ? "Skipped: sample data mode is active."
-                : "Skipped: configuration check failed.");
+            SkipRemainingStages(checks, "Skipped: configuration check failed.");
             return result;
         }
 
@@ -107,14 +105,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             return null;
         }
 
-        if (settings.SampleDataEnabled)
-        {
-            AddCheck(checks, Stages.Configuration, Statuses.Warning,
-                "Sample data mode is active — Google Analytics is not exercised.");
-            return null;
-        }
-
-        if (!settings.IsGoogleConfigured)
+        if (!settings.IsConfigured)
         {
             AddCheck(checks, Stages.Configuration, Statuses.Failed,
                 "GA4 Data API property id is not configured for the store (GoogleAnalytics4.DataApi.PropertyId).");

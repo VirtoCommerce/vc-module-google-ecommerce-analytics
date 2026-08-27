@@ -31,8 +31,7 @@ public class AnalyticsSettingsResolverTests
         SetupStore(CreateStore(
             (ModuleConstants.Settings.DataApi.PropertyId.Name, "123456"),
             (ModuleConstants.Settings.DataApi.ServiceAccountJson.Name, "{}"),
-            (ModuleConstants.Settings.DataApi.CacheTtlMinutes.Name, 15),
-            (ModuleConstants.Settings.DataApi.SampleDataEnabled.Name, true)));
+            (ModuleConstants.Settings.DataApi.CacheTtlMinutes.Name, 15)));
         var resolver = CreateResolver();
 
         var settings = await resolver.ResolveAsync(StoreId);
@@ -40,8 +39,7 @@ public class AnalyticsSettingsResolverTests
         Assert.Equal("123456", settings.PropertyId);
         Assert.Equal("{}", settings.CredentialJson);
         Assert.Equal(15, settings.CacheTtlMinutes);
-        Assert.True(settings.SampleDataEnabled);
-        Assert.True(settings.IsGoogleConfigured);
+        Assert.True(settings.IsConfigured);
     }
 
     [Fact]
@@ -90,8 +88,7 @@ public class AnalyticsSettingsResolverTests
 
         Assert.Null(settings.PropertyId);
         Assert.Null(settings.CredentialJson);
-        Assert.False(settings.SampleDataEnabled);
-        Assert.False(settings.IsGoogleConfigured);
+        Assert.False(settings.IsConfigured);
     }
 
     private AnalyticsSettingsResolver CreateResolver()

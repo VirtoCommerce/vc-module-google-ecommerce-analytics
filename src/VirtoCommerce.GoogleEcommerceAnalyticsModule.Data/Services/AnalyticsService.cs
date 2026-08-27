@@ -19,20 +19,17 @@ public class AnalyticsService : IAnalyticsService
     private readonly IAnalyticsSettingsResolver _settingsResolver;
     private readonly IPlatformMemoryCache _platformMemoryCache;
     private readonly GoogleAnalyticsDataSource _googleAnalyticsDataSource;
-    private readonly SampleAnalyticsDataSource _sampleAnalyticsDataSource;
     private readonly ILogger<AnalyticsService> _logger;
 
     public AnalyticsService(
         IAnalyticsSettingsResolver settingsResolver,
         IPlatformMemoryCache platformMemoryCache,
         GoogleAnalyticsDataSource googleAnalyticsDataSource,
-        SampleAnalyticsDataSource sampleAnalyticsDataSource,
         ILogger<AnalyticsService> logger)
     {
         _settingsResolver = settingsResolver;
         _platformMemoryCache = platformMemoryCache;
         _googleAnalyticsDataSource = googleAnalyticsDataSource;
-        _sampleAnalyticsDataSource = sampleAnalyticsDataSource;
         _logger = logger;
     }
 
@@ -43,7 +40,7 @@ public class AnalyticsService : IAnalyticsService
         try
         {
             var settings = await _settingsResolver.ResolveAsync(storeId);
-            return settings.SampleDataEnabled || settings.IsGoogleConfigured;
+            return settings.IsConfigured;
         }
         catch (Exception ex)
         {
@@ -142,12 +139,7 @@ public class AnalyticsService : IAnalyticsService
 
     protected virtual IAnalyticsDataSource ResolveDataSource(AnalyticsDataApiSettings settings)
     {
-        if (settings.SampleDataEnabled)
-        {
-            return _sampleAnalyticsDataSource;
-        }
-
-        return settings.IsGoogleConfigured ? _googleAnalyticsDataSource : null;
+        return settings.IsConfigured ? _googleAnalyticsDataSource : null;
     }
 
     protected virtual AnalyticsDataQuery CreateQuery(AnalyticsDataApiSettings settings, AnalyticsEventCriteriaBase criteria)

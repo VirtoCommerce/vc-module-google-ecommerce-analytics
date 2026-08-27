@@ -22,7 +22,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
             serviceCollection.AddTransient<IGoogleAnalyticsSettingsManager, GoogleAnalyticsSettingsManager>();
             serviceCollection.AddSingleton<IGoogleAnalyticsReportClient, GoogleAnalyticsReportClient>();
             serviceCollection.AddTransient<GoogleAnalyticsDataSource>();
-            serviceCollection.AddTransient<SampleAnalyticsDataSource>();
             serviceCollection.AddTransient<IAnalyticsSettingsResolver, AnalyticsSettingsResolver>();
             serviceCollection.AddTransient<IAnalyticsService, AnalyticsService>();
             serviceCollection.AddTransient<IAnalyticsDiagnosticsService, AnalyticsDiagnosticsService>();

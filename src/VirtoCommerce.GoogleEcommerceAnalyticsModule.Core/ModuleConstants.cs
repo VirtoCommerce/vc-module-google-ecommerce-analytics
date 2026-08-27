@@ -154,14 +154,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     DefaultValue = DefaultCacheTtlMinutes
                 };
 
-                public static SettingDescriptor SampleDataEnabled { get; } = new SettingDescriptor
-                {
-                    Name = "GoogleAnalytics4.DataApi.SampleDataEnabled",
-                    GroupName = "Google Analytics 4",
-                    ValueType = SettingValueType.Boolean,
-                    DefaultValue = false
-                };
-
                 public static IEnumerable<SettingDescriptor> AllSettings
                 {
                     get
@@ -169,7 +161,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                         yield return PropertyId;
                         yield return ServiceAccountJson;
                         yield return CacheTtlMinutes;
-                        yield return SampleDataEnabled;
                     }
                 }
             }
@@ -184,7 +175,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     yield return DataApi.PropertyId;
                     yield return DataApi.ServiceAccountJson;
                     yield return DataApi.CacheTtlMinutes;
-                    yield return DataApi.SampleDataEnabled;
                 }
             }
         }

@@ -8,7 +8,5 @@ public class AnalyticsDataApiSettings
 
     public int CacheTtlMinutes { get; set; }
 
-    public bool SampleDataEnabled { get; set; }
-
-    public bool IsGoogleConfigured => !string.IsNullOrEmpty(PropertyId);
+    public bool IsConfigured => !string.IsNullOrEmpty(PropertyId);
 }

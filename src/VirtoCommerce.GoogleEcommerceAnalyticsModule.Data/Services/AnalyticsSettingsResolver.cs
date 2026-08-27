@@ -30,7 +30,6 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
             PropertyId = await GetSettingAsync<string>(storeSettings, DataApiSettings.PropertyId),
             CredentialJson = await GetSettingAsync<string>(storeSettings, DataApiSettings.ServiceAccountJson),
             CacheTtlMinutes = await GetSettingAsync<int>(storeSettings, DataApiSettings.CacheTtlMinutes),
-            SampleDataEnabled = await GetSettingAsync<bool>(storeSettings, DataApiSettings.SampleDataEnabled),
         };
     }
 

@@ -32,18 +32,16 @@ public class AnalyticsServiceTests
     }
 
     [Theory]
-    [InlineData("123456", null, false, true)]
-    [InlineData("123456", "{}", false, true)]
-    [InlineData(null, "{}", false, false)]
-    [InlineData(null, null, true, true)]
-    [InlineData(null, null, false, false)]
-    public async Task IsConfiguredAsync_Matrix(string propertyId, string credentialJson, bool sampleDataEnabled, bool expected)
+    [InlineData("123456", null, true)]
+    [InlineData("123456", "{}", true)]
+    [InlineData(null, "{}", false)]
+    [InlineData(null, null, false)]
+    public async Task IsConfiguredAsync_Matrix(string propertyId, string credentialJson, bool expected)
     {
         var service = CreateService(new AnalyticsDataApiSettings
         {
             PropertyId = propertyId,
             CredentialJson = credentialJson,
-            SampleDataEnabled = sampleDataEnabled,
         });
 
         Assert.Equal(expected, await service.IsConfiguredAsync(StoreId));
@@ -180,20 +178,6 @@ public class AnalyticsServiceTests
     }
 
     [Fact]
-    public async Task SearchEventsAsync_SampleDataEnabled_UsesSampleSource()
-    {
-        var service = CreateService(new AnalyticsDataApiSettings { SampleDataEnabled = true });
-
-        var criteria = CreateSearchCriteria();
-        criteria.Take = 50;
-        var result = await service.SearchEventsAsync(criteria);
-
-        Assert.True(result.TotalCount > 0);
-        Assert.NotEmpty(result.Events);
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GetEventSummariesAsync_AggregatesPerRequestedEventName()
     {
         _googleDataSourceMock
@@ -268,8 +252,8 @@ public class AnalyticsServiceTests
         var logger = new Mock<ILogger<AnalyticsService>>().Object;
 
         return failureCacheTtl == null
-            ? new AnalyticsService(_settingsResolverMock.Object, platformMemoryCache, _googleDataSourceMock.Object, new SampleAnalyticsDataSource(), logger)
-            : new ShortFailureTtlAnalyticsService(failureCacheTtl.Value, _settingsResolverMock.Object, platformMemoryCache, _googleDataSourceMock.Object, new SampleAnalyticsDataSource(), logger);
+            ? new AnalyticsService(_settingsResolverMock.Object, platformMemoryCache, _googleDataSourceMock.Object, logger)
+            : new ShortFailureTtlAnalyticsService(failureCacheTtl.Value, _settingsResolverMock.Object, platformMemoryCache, _googleDataSourceMock.Object, logger);
     }
 
     private AnalyticsService CreateGoogleConfiguredService(TimeSpan? failureCacheTtl = null)
@@ -318,9 +302,8 @@ public class AnalyticsServiceTests
             IAnalyticsSettingsResolver settingsResolver,
             IPlatformMemoryCache platformMemoryCache,
             GoogleAnalyticsDataSource googleAnalyticsDataSource,
-            SampleAnalyticsDataSource sampleAnalyticsDataSource,
             ILogger<AnalyticsService> logger)
-            : base(settingsResolver, platformMemoryCache, googleAnalyticsDataSource, sampleAnalyticsDataSource, logger)
+            : base(settingsResolver, platformMemoryCache, googleAnalyticsDataSource, logger)
         {
             _failureCacheTtl = failureCacheTtl;
         }
