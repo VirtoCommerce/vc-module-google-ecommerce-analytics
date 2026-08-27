@@ -40,6 +40,11 @@ public class AnalyticsDiagnosticsServiceTests
         Stages.ProcessedData,
     };
 
+    private static readonly string[] ExpectedReportDimensions = { "eventName", "dateHour", "searchTerm" };
+    private static readonly string[] ExpectedFilteredDimensions = { "eventName", "customUser:session_kind", "customUser:organization_id" };
+    private static readonly string[] ExpectedEventNameFilterValues = { "search", "view_search_results" };
+    private static readonly string[] ExpectedEventNameDimensionOnly = { "eventName" };
+
     private readonly Mock<IAnalyticsSettingsResolver> _settingsResolverMock = new();
     private readonly Mock<IGoogleAnalyticsReportClient> _reportClientMock = new();
     private readonly List<CheckCompatibilityRequest> _capturedCompatibilityRequests = new();
@@ -322,13 +327,13 @@ public class AnalyticsDiagnosticsServiceTests
         var request = Assert.Single(_capturedCompatibilityRequests);
         Assert.Equal($"properties/{PropertyId}", request.Property);
         Assert.Equal(Compatibility.Incompatible, request.CompatibilityFilter);
-        Assert.Equal(new[] { "eventName", "dateHour", "searchTerm" }, request.Dimensions.Select(x => x.Name));
+        Assert.Equal(ExpectedReportDimensions, request.Dimensions.Select(x => x.Name));
         Assert.Equal("eventCount", Assert.Single(request.Metrics).Name);
         Assert.Equal(
-            new[] { "eventName", "customUser:session_kind", "customUser:organization_id" },
+            ExpectedFilteredDimensions,
             request.DimensionFilter.AndGroup.Expressions.Select(x => x.Filter.FieldName));
         Assert.Equal(
-            new[] { "search", "view_search_results" },
+            ExpectedEventNameFilterValues,
             request.DimensionFilter.AndGroup.Expressions[0].Filter.InListFilter.Values);
     }
 
@@ -414,8 +419,8 @@ public class AnalyticsDiagnosticsServiceTests
         Assert.Contains("checked event stream only", realtime.Message);
         Assert.Contains("search=5", realtime.Message);
         Assert.Equal(2, _capturedRealtimeRequests.Count);
-        Assert.Equal(new[] { "eventName", "customUser:session_kind", "customUser:organization_id" }, _capturedRealtimeRequests[0].Dimensions.Select(x => x.Name));
-        Assert.Equal(new[] { "eventName" }, _capturedRealtimeRequests[1].Dimensions.Select(x => x.Name));
+        Assert.Equal(ExpectedFilteredDimensions, _capturedRealtimeRequests[0].Dimensions.Select(x => x.Name));
+        Assert.Equal(ExpectedEventNameDimensionOnly, _capturedRealtimeRequests[1].Dimensions.Select(x => x.Name));
     }
 
     [Fact]

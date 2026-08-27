@@ -593,7 +593,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             : consumer;
     }
 
-    private static FilterExpression CombineExpressions(IList<FilterExpression> expressions)
+    private static FilterExpression CombineExpressions(List<FilterExpression> expressions)
     {
         if (expressions.Count == 0)
         {

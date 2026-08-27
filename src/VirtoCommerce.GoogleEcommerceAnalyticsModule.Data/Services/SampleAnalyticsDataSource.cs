@@ -14,6 +14,11 @@ public class SampleAnalyticsDataSource : IAnalyticsDataSource
 {
     private const int MaxHourBuckets = 24 * 14;
     private const int BucketDensityPercent = 30;
+    private const int PercentScale = 100;
+    private const int MaxEventCount = 5;
+    private const int GeneratedDimensionValueVariants = 5;
+    private const uint FnvOffsetBasis = 2166136261u;
+    private const uint FnvPrime = 16777619u;
 
     private static readonly string[] DefaultEventNames =
     {
@@ -40,6 +45,21 @@ public class SampleAnalyticsDataSource : IAnalyticsDataSource
         var eventNames = query.EventNames?.Count > 0 ? query.EventNames : DefaultEventNames;
         var filterSignature = GetFilterSignature(query);
 
+        var events = GenerateEvents(query, from, to, eventNames, filterSignature);
+
+        if (ModuleConstants.SortBy.Count.EqualsIgnoreCase(query.SortBy))
+        {
+            events = AggregateByDimensionTuple(events);
+        }
+
+        result.TotalCount = events.Count;
+        result.Events = query.Take > 0 ? events.Skip(query.Skip).Take(query.Take).ToList() : new List<AnalyticsEvent>();
+
+        return Task.FromResult(result);
+    }
+
+    protected virtual IList<AnalyticsEvent> GenerateEvents(AnalyticsDataQuery query, DateTime from, DateTime to, IList<string> eventNames, string filterSignature)
+    {
         var events = new List<AnalyticsEvent>();
 
         for (var bucketIndex = 0; bucketIndex < MaxHourBuckets; bucketIndex++)
@@ -53,41 +73,36 @@ public class SampleAnalyticsDataSource : IAnalyticsDataSource
             foreach (var eventName in eventNames)
             {
                 var seed = GetStableHash(eventName, bucketIndex.ToString(CultureInfo.InvariantCulture), filterSignature);
-                if (seed % 100 >= BucketDensityPercent)
+                if (seed % PercentScale < BucketDensityPercent)
                 {
-                    continue;
+                    events.Add(CreateEvent(query, eventName, bucket, seed));
                 }
-
-                var analyticsEvent = AbstractTypeFactory<AnalyticsEvent>.TryCreateInstance();
-                analyticsEvent.EventName = eventName;
-                analyticsEvent.OccurredAt = bucket;
-                analyticsEvent.Count = 1 + seed / 100 % 5;
-
-                foreach (var dimensionName in query.DimensionNames ?? Array.Empty<string>())
-                {
-                    var value = GetDimensionValue(dimensionName, query.DimensionFilters, seed);
-                    if (value != null)
-                    {
-                        analyticsEvent.Dimensions[dimensionName] = value;
-                    }
-                }
-
-                events.Add(analyticsEvent);
             }
         }
 
-        if (ModuleConstants.SortBy.Count.EqualsIgnoreCase(query.SortBy))
-        {
-            events = AggregateByDimensionTuple(events);
-        }
-
-        result.TotalCount = events.Count;
-        result.Events = query.Take > 0 ? events.Skip(query.Skip).Take(query.Take).ToList() : new List<AnalyticsEvent>();
-
-        return Task.FromResult(result);
+        return events;
     }
 
-    protected virtual List<AnalyticsEvent> AggregateByDimensionTuple(List<AnalyticsEvent> events)
+    protected virtual AnalyticsEvent CreateEvent(AnalyticsDataQuery query, string eventName, DateTime bucket, int seed)
+    {
+        var analyticsEvent = AbstractTypeFactory<AnalyticsEvent>.TryCreateInstance();
+        analyticsEvent.EventName = eventName;
+        analyticsEvent.OccurredAt = bucket;
+        analyticsEvent.Count = 1 + seed / PercentScale % MaxEventCount;
+
+        foreach (var dimensionName in query.DimensionNames ?? Array.Empty<string>())
+        {
+            var value = GetDimensionValue(dimensionName, query.DimensionFilters, seed);
+            if (value != null)
+            {
+                analyticsEvent.Dimensions[dimensionName] = value;
+            }
+        }
+
+        return analyticsEvent;
+    }
+
+    protected virtual IList<AnalyticsEvent> AggregateByDimensionTuple(IList<AnalyticsEvent> events)
     {
         return events
             .GroupBy(GetDimensionTupleKey)
@@ -128,6 +143,11 @@ public class SampleAnalyticsDataSource : IAnalyticsDataSource
             return filter.Values[seed % filter.Values.Count];
         }
 
+        return GetGeneratedDimensionValue(dimensionName, seed);
+    }
+
+    protected virtual string GetGeneratedDimensionValue(string dimensionName, int seed)
+    {
         return dimensionName switch
         {
             ModuleConstants.Dimensions.SearchTerm => SampleSearchTerms[seed % SampleSearchTerms.Length],
@@ -135,7 +155,7 @@ public class SampleAnalyticsDataSource : IAnalyticsDataSource
             ModuleConstants.Dimensions.ItemName => SampleItemNames[seed % SampleItemNames.Length],
             ModuleConstants.Dimensions.ItemListName => SampleItemListNames[seed % SampleItemListNames.Length],
             ModuleConstants.UserDimensions.SessionKind => ModuleConstants.SessionKinds.Self,
-            _ => $"{dimensionName}-{seed % 5}",
+            _ => $"{dimensionName}-{seed % GeneratedDimensionValueVariants}",
         };
     }
 
@@ -150,14 +170,14 @@ public class SampleAnalyticsDataSource : IAnalyticsDataSource
     // FNV-1a: string.GetHashCode is randomized per process, so it cannot seed deterministic sample data.
     private static int GetStableHash(params string[] parts)
     {
-        var hash = 2166136261u;
+        var hash = FnvOffsetBasis;
 
         foreach (var character in string.Join("|", parts))
         {
             unchecked
             {
                 hash ^= character;
-                hash *= 16777619u;
+                hash *= FnvPrime;
             }
         }
 

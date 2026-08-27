@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
@@ -131,6 +130,8 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
 
             public static class DataApi
             {
+                public const int DefaultCacheTtlMinutes = 60;
+
                 public static SettingDescriptor PropertyId { get; } = new SettingDescriptor
                 {
                     Name = "GoogleAnalytics4.DataApi.PropertyId",
@@ -150,7 +151,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     Name = "GoogleAnalytics4.DataApi.CacheTtlMinutes",
                     GroupName = "Google Analytics 4",
                     ValueType = SettingValueType.PositiveInteger,
-                    DefaultValue = 60
+                    DefaultValue = DefaultCacheTtlMinutes
                 };
 
                 public static SettingDescriptor SampleDataEnabled { get; } = new SettingDescriptor
@@ -171,11 +172,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                         yield return SampleDataEnabled;
                     }
                 }
-            }
-
-            public static IEnumerable<SettingDescriptor> AllSettings
-            {
-                get { return General.AllSettings.Concat(DataApi.AllSettings); }
             }
 
             public static IEnumerable<SettingDescriptor> StoreLevelSettings

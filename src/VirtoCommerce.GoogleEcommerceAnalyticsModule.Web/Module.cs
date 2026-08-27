@@ -51,7 +51,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
 
             // register settings
             var settingsRegistrar = serviceProvider.GetRequiredService<ISettingsRegistrar>();
-            settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);
+            settingsRegistrar.RegisterSettings(ModuleConstants.Settings.General.AllSettings.Concat(ModuleConstants.Settings.DataApi.AllSettings), ModuleInfo.Id);
 
             //Register store level settings
             settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.StoreLevelSettings, nameof(Store));

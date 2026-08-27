@@ -14,6 +14,14 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests;
 
 public class GoogleAnalyticsDataSourceTests
 {
+    private static readonly string[] ExpectedSearchReportDimensions = { "eventName", "dateHour", "searchTerm", "customUser:organization_id" };
+    private static readonly string[] ExpectedSearchCountDimensions = { "eventName", "searchTerm" };
+    private static readonly string[] ExpectedItemReportDimensions = { "dateHour", "itemId", "itemName" };
+    private static readonly string[] ExpectedItemCountDimensions = { "itemId", "itemName" };
+    private static readonly string[] ExpectedSearchEventFilterValues = { "search" };
+    private static readonly string[] ExpectedViewItemEventFilterValues = { "view_item" };
+    private static readonly string[] ExpectedOrganizationFilterValues = { "org1", "org2" };
+
     private readonly Mock<IGoogleAnalyticsReportClient> _reportClientMock = new();
 
     private string _capturedCredential;
@@ -48,7 +56,7 @@ public class GoogleAnalyticsDataSourceTests
         Assert.Equal(5L, _capturedRequest.Offset);
 
         Assert.Equal(
-            new[] { "eventName", "dateHour", "searchTerm", "customUser:organization_id" },
+            ExpectedSearchReportDimensions,
             _capturedRequest.Dimensions.Select(x => x.Name));
         Assert.Equal("eventCount", Assert.Single(_capturedRequest.Metrics).Name);
 
@@ -59,9 +67,9 @@ public class GoogleAnalyticsDataSourceTests
         var expressions = _capturedRequest.DimensionFilter.AndGroup.Expressions;
         Assert.Equal(3, expressions.Count);
         Assert.Equal("eventName", expressions[0].Filter.FieldName);
-        Assert.Equal(new[] { "search" }, expressions[0].Filter.InListFilter.Values);
+        Assert.Equal(ExpectedSearchEventFilterValues, expressions[0].Filter.InListFilter.Values);
         Assert.Equal("customUser:organization_id", expressions[1].Filter.FieldName);
-        Assert.Equal(new[] { "org1", "org2" }, expressions[1].Filter.InListFilter.Values);
+        Assert.Equal(ExpectedOrganizationFilterValues, expressions[1].Filter.InListFilter.Values);
         Assert.Equal("searchTerm", expressions[2].Filter.FieldName);
 
         var orderBy = Assert.Single(_capturedRequest.OrderBys);
@@ -197,7 +205,7 @@ public class GoogleAnalyticsDataSourceTests
             Take = 10,
         });
 
-        Assert.Equal(new[] { "eventName", "searchTerm" }, _capturedRequest.Dimensions.Select(x => x.Name));
+        Assert.Equal(ExpectedSearchCountDimensions, _capturedRequest.Dimensions.Select(x => x.Name));
         Assert.Equal("eventCount", Assert.Single(_capturedRequest.Metrics).Name);
 
         var orderBy = Assert.Single(_capturedRequest.OrderBys);
@@ -223,13 +231,13 @@ public class GoogleAnalyticsDataSourceTests
             Take = 10,
         });
 
-        Assert.Equal(new[] { "dateHour", "itemId", "itemName" }, _capturedRequest.Dimensions.Select(x => x.Name));
+        Assert.Equal(ExpectedItemReportDimensions, _capturedRequest.Dimensions.Select(x => x.Name));
         Assert.Equal("itemsViewed", Assert.Single(_capturedRequest.Metrics).Name);
 
         var expressions = _capturedRequest.DimensionFilter.AndGroup.Expressions;
         Assert.Equal(2, expressions.Count);
         Assert.Equal("eventName", expressions[0].Filter.FieldName);
-        Assert.Equal(new[] { "view_item" }, expressions[0].Filter.InListFilter.Values);
+        Assert.Equal(ExpectedViewItemEventFilterValues, expressions[0].Filter.InListFilter.Values);
         Assert.Equal("customUser:organization_id", expressions[1].Filter.FieldName);
 
         var orderBy = Assert.Single(_capturedRequest.OrderBys);
@@ -251,7 +259,7 @@ public class GoogleAnalyticsDataSourceTests
             Take = 10,
         });
 
-        Assert.Equal(new[] { "itemId", "itemName" }, _capturedRequest.Dimensions.Select(x => x.Name));
+        Assert.Equal(ExpectedItemCountDimensions, _capturedRequest.Dimensions.Select(x => x.Name));
         Assert.Equal("itemsViewed", Assert.Single(_capturedRequest.Metrics).Name);
 
         var orderBy = Assert.Single(_capturedRequest.OrderBys);
