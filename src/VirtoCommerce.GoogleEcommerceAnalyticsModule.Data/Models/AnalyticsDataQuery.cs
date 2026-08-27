@@ -9,8 +9,6 @@ public class AnalyticsDataQuery
 {
     public string PropertyId { get; set; }
 
-    public string CredentialJson { get; set; }
-
     public IList<string> EventNames { get; set; } = new List<string>();
 
     public IList<AnalyticsDimensionFilter> DimensionFilters { get; set; } = new List<AnalyticsDimensionFilter>();

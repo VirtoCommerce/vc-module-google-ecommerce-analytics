@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 using Google.Analytics.Data.V1Beta;
 using Google.Api.Gax.Grpc;
 using Grpc.Core;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
@@ -24,7 +22,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
 {
     private const string UserDimensionPrefix = "customUser:";
     private const string EventCountMetric = "eventCount";
-    private const string CredentialTypeProperty = "type";
+    private const string ApplicationDefaultCredentials = "Application Default Credentials";
     private const string ProbeFilterValue = "diagnostics-probe";
     private const string ProcessedDataStartDate = "7daysAgo";
     private const string ProcessedDataEndDate = "today";
@@ -70,7 +68,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             return result;
         }
 
-        if (!await CheckCredentialsAsync(settings, checks))
+        if (!await CheckCredentialsAsync(checks))
         {
             SkipRemainingStages(checks, "Skipped: credential resolution failed.");
             return result;
@@ -113,24 +111,26 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         }
 
         AddCheck(checks, Stages.Configuration, Statuses.Passed,
-            $"Property {settings.PropertyId} configured; credential: {DescribeCredentialSource(settings.CredentialJson)}.");
+            $"Property {settings.PropertyId} configured; credential: {DescribeCredentialSource()}.");
         return settings;
     }
 
-    protected virtual async Task<bool> CheckCredentialsAsync(AnalyticsDataApiSettings settings, IList<AnalyticsDiagnosticsCheck> checks)
+    protected virtual async Task<bool> CheckCredentialsAsync(IList<AnalyticsDiagnosticsCheck> checks)
     {
         try
         {
-            await _reportClient.ValidateCredentialAsync(settings.CredentialJson);
-            AddCheck(checks, Stages.Credentials, Statuses.Passed, "Credential resolved successfully.");
+            await _reportClient.ValidateCredentialAsync();
+            AddCheck(checks, Stages.Credentials, Statuses.Passed,
+                $"{ApplicationDefaultCredentials} resolved and scoped for read-only Google Analytics access.");
             return true;
         }
         catch (Exception ex)
         {
-            var message = string.IsNullOrWhiteSpace(settings.CredentialJson)
-                ? "Application Default Credentials are not available — set GoogleAnalytics4.DataApi.ServiceAccountJson or provide ADC (GOOGLE_APPLICATION_CREDENTIALS)."
-                : "The configured credential JSON cannot be used — check GoogleAnalytics4.DataApi.ServiceAccountJson for malformed or incomplete JSON.";
-            AddCheck(checks, Stages.Credentials, Statuses.Failed, message, ex.Message);
+            AddCheck(checks, Stages.Credentials, Statuses.Failed,
+                $"{ApplicationDefaultCredentials} are not available — point GOOGLE_APPLICATION_CREDENTIALS at a service account key file, " +
+                "make sure the workload identity federation or metadata-server identity is reachable, " +
+                "or run 'gcloud auth application-default login' for local development.",
+                ex.Message);
             return false;
         }
     }
@@ -139,7 +139,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         try
         {
-            var metadata = await _reportClient.GetMetadataAsync(settings.CredentialJson, settings.PropertyId);
+            var metadata = await _reportClient.GetMetadataAsync(settings.PropertyId);
             if (metadata == null)
             {
                 AddCheck(checks, Stages.ApiAccess, Statuses.Failed, "Google Analytics Data API returned no metadata.");
@@ -242,7 +242,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             foreach (var shape in shapes)
             {
                 var compatibilityRequest = BuildCompatibilityRequest(settings.PropertyId, shape, userDimensionNames);
-                var response = await _reportClient.CheckCompatibilityAsync(settings.CredentialJson, compatibilityRequest);
+                var response = await _reportClient.CheckCompatibilityAsync(compatibilityRequest);
                 var incompatibleFields = GetIncompatibleFields(response, GetRequestedFieldNames(compatibilityRequest));
 
                 if (incompatibleFields.Count > 0)
@@ -294,13 +294,13 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
 
             try
             {
-                response = await _reportClient.RunRealtimeReportAsync(settings.CredentialJson,
+                response = await _reportClient.RunRealtimeReportAsync(
                     BuildRealtimeRequest(settings.PropertyId, userDimensionNames));
             }
             catch (RpcException ex) when (checkedCustomDimensions && ex.StatusCode == StatusCode.InvalidArgument)
             {
                 checkedCustomDimensions = false;
-                response = await _reportClient.RunRealtimeReportAsync(settings.CredentialJson,
+                response = await _reportClient.RunRealtimeReportAsync(
                     BuildRealtimeRequest(settings.PropertyId, new List<string>()));
             }
 
@@ -329,7 +329,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         try
         {
-            var response = await _reportClient.RunReportAsync(settings.CredentialJson, BuildProcessedDataRequest(settings.PropertyId));
+            var response = await _reportClient.RunReportAsync(BuildProcessedDataRequest(settings.PropertyId));
             var eventCounts = AggregateEventCounts(response.DimensionHeaders, response.Rows);
 
             if (eventCounts.Count == 0)
@@ -511,24 +511,9 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         return missingNames.Count > 0 ? $" Requested events not seen: {string.Join(", ", missingNames)}." : string.Empty;
     }
 
-    protected virtual string DescribeCredentialSource(string credentialJson)
+    protected virtual string DescribeCredentialSource()
     {
-        if (string.IsNullOrWhiteSpace(credentialJson))
-        {
-            return "Application Default Credentials";
-        }
-
-        string credentialType = null;
-        try
-        {
-            credentialType = JObject.Parse(credentialJson)[CredentialTypeProperty]?.Value<string>();
-        }
-        catch (JsonException)
-        {
-            // Malformed JSON is diagnosed by the credentials stage; the source kind is still reported here.
-        }
-
-        return string.IsNullOrEmpty(credentialType) ? "JSON from setting" : $"{credentialType} from setting";
+        return ApplicationDefaultCredentials;
     }
 
     protected virtual string DescribeError(Exception exception)

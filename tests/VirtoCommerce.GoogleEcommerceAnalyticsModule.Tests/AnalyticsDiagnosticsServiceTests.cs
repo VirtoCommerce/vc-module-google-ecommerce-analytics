@@ -64,9 +64,9 @@ public class AnalyticsDiagnosticsServiceTests
 
         var configuration = GetCheck(result, Stages.Configuration);
         Assert.Contains(PropertyId, configuration.Message);
-        Assert.Contains("service_account from setting", configuration.Message);
-        Assert.DoesNotContain("private", configuration.Message);
+        Assert.Contains("Application Default Credentials", configuration.Message);
 
+        Assert.Contains("Application Default Credentials", GetCheck(result, Stages.Credentials).Message);
         Assert.Contains("session_kind", GetCheck(result, Stages.CustomDimensions).Message);
         Assert.Contains("searchTerms", GetCheck(result, Stages.ReportCompatibility).Message);
 
@@ -135,37 +135,11 @@ public class AnalyticsDiagnosticsServiceTests
     }
 
     [Fact]
-    public async Task RunAsync_AdcCredential_ReportsAdcSource()
+    public async Task Credentials_AdcNotFound_FailsWithOperatorAdviceAndSkipsRest()
     {
-        SetupHappyGooglePath();
-        SetupSettings(new AnalyticsDataApiSettings { PropertyId = PropertyId });
-        var service = CreateService();
-
-        var result = await service.RunAsync(StoreId, CreateRequest());
-
-        Assert.Contains("Application Default Credentials", GetCheck(result, Stages.Configuration).Message);
-    }
-
-    [Fact]
-    public async Task RunAsync_UnparseableCredentialJson_ReportsSourceWithoutContent()
-    {
-        SetupHappyGooglePath();
-        SetupSettings(new AnalyticsDataApiSettings { PropertyId = PropertyId, CredentialJson = "{secret-not-json" });
-        var service = CreateService();
-
-        var result = await service.RunAsync(StoreId, CreateRequest());
-
-        var configuration = GetCheck(result, Stages.Configuration);
-        Assert.Contains("JSON from setting", configuration.Message);
-        Assert.DoesNotContain("secret", configuration.Message);
-    }
-
-    [Fact]
-    public async Task Credentials_AdcNotFound_FailsAndSkipsRest()
-    {
-        SetupSettings(new AnalyticsDataApiSettings { PropertyId = PropertyId });
+        SetupGoogleSettings();
         _reportClientMock
-            .Setup(x => x.ValidateCredentialAsync(It.IsAny<string>()))
+            .Setup(x => x.ValidateCredentialAsync())
             .ThrowsAsync(new InvalidOperationException("The Application Default Credentials are not available."));
         var service = CreateService();
 
@@ -175,25 +149,12 @@ public class AnalyticsDiagnosticsServiceTests
         var credentials = GetCheck(result, Stages.Credentials);
         Assert.Equal(Statuses.Failed, credentials.Status);
         Assert.Contains("Application Default Credentials", credentials.Message);
+        Assert.Contains("GOOGLE_APPLICATION_CREDENTIALS", credentials.Message);
+        Assert.Contains("workload identity", credentials.Message);
+        Assert.Contains("gcloud auth application-default login", credentials.Message);
+        Assert.Equal("The Application Default Credentials are not available.", credentials.Detail);
         Assert.All(result.Checks.Skip(2), x => Assert.Equal(Statuses.Skipped, x.Status));
-        _reportClientMock.Verify(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Credentials_MalformedConfiguredJson_MessagePointsAtSetting()
-    {
-        SetupGoogleSettings();
-        _reportClientMock
-            .Setup(x => x.ValidateCredentialAsync(It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("Error creating credential from JSON."));
-        var service = CreateService();
-
-        var result = await service.RunAsync(StoreId, CreateRequest());
-
-        var credentials = GetCheck(result, Stages.Credentials);
-        Assert.Equal(Statuses.Failed, credentials.Status);
-        Assert.Contains("GoogleAnalytics4.DataApi.ServiceAccountJson", credentials.Message);
-        Assert.Equal("Error creating credential from JSON.", credentials.Detail);
+        _reportClientMock.Verify(x => x.GetMetadataAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -359,7 +320,7 @@ public class AnalyticsDiagnosticsServiceTests
     {
         SetupHappyGooglePath();
         _reportClientMock
-            .Setup(x => x.CheckCompatibilityAsync(It.IsAny<string>(), It.IsAny<CheckCompatibilityRequest>()))
+            .Setup(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>()))
             .ThrowsAsync(new InvalidOperationException("credentials missing"));
         var service = CreateService();
 
@@ -383,7 +344,7 @@ public class AnalyticsDiagnosticsServiceTests
         var result = await service.RunAsync(StoreId, request);
 
         Assert.Equal(Statuses.Skipped, GetCheck(result, Stages.ReportCompatibility).Status);
-        _reportClientMock.Verify(x => x.CheckCompatibilityAsync(It.IsAny<string>(), It.IsAny<CheckCompatibilityRequest>()), Times.Never);
+        _reportClientMock.Verify(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>()), Times.Never);
     }
 
     [Fact]
@@ -391,8 +352,8 @@ public class AnalyticsDiagnosticsServiceTests
     {
         SetupHappyGooglePath();
         _reportClientMock
-            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<string>(), It.Is<RunRealtimeReportRequest>(r => r.Dimensions.Count > 1)))
-            .Callback((string _, RunRealtimeReportRequest request) => _capturedRealtimeRequests.Add(request))
+            .Setup(x => x.RunRealtimeReportAsync(It.Is<RunRealtimeReportRequest>(r => r.Dimensions.Count > 1)))
+            .Callback((RunRealtimeReportRequest request) => _capturedRealtimeRequests.Add(request))
             .ThrowsAsync(CreateRpcException(StatusCode.InvalidArgument, "Field customUser:session_kind is not a valid dimension."));
         var service = CreateService();
 
@@ -437,8 +398,8 @@ public class AnalyticsDiagnosticsServiceTests
         AssertStageOrder(result);
         Assert.Equal(Statuses.Skipped, GetCheck(result, Stages.Realtime).Status);
         Assert.Equal(Statuses.Skipped, GetCheck(result, Stages.ProcessedData).Status);
-        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<string>(), It.IsAny<RunRealtimeReportRequest>()), Times.Never);
-        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<string>(), It.IsAny<RunReportRequest>()), Times.Never);
+        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>()), Times.Never);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
     }
 
     [Fact]
@@ -446,7 +407,7 @@ public class AnalyticsDiagnosticsServiceTests
     {
         SetupHappyGooglePath();
         _reportClientMock
-            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<string>(), It.IsAny<RunRealtimeReportRequest>()))
+            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>()))
             .ThrowsAsync(CreateRpcException(StatusCode.Unavailable, "try again later"));
         var service = CreateService();
 
@@ -476,7 +437,7 @@ public class AnalyticsDiagnosticsServiceTests
     {
         SetupGoogleSettings();
         _reportClientMock
-            .Setup(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.GetMetadataAsync(It.IsAny<string>()))
             .ThrowsAsync(exception);
         var service = CreateService();
 
@@ -505,7 +466,7 @@ public class AnalyticsDiagnosticsServiceTests
 
     private void SetupGoogleSettings()
     {
-        SetupSettings(new AnalyticsDataApiSettings { PropertyId = PropertyId, CredentialJson = """{"type":"service_account"}""" });
+        SetupSettings(new AnalyticsDataApiSettings { PropertyId = PropertyId });
     }
 
     private void SetupSettings(AnalyticsDataApiSettings settings)
@@ -524,31 +485,31 @@ public class AnalyticsDiagnosticsServiceTests
         }
 
         _reportClientMock
-            .Setup(x => x.GetMetadataAsync(It.IsAny<string>(), PropertyId))
+            .Setup(x => x.GetMetadataAsync(PropertyId))
             .ReturnsAsync(metadata);
     }
 
     private void SetupCompatibility(CheckCompatibilityResponse response)
     {
         _reportClientMock
-            .Setup(x => x.CheckCompatibilityAsync(It.IsAny<string>(), It.IsAny<CheckCompatibilityRequest>()))
-            .Callback((string _, CheckCompatibilityRequest request) => _capturedCompatibilityRequests.Add(request))
+            .Setup(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>()))
+            .Callback((CheckCompatibilityRequest request) => _capturedCompatibilityRequests.Add(request))
             .ReturnsAsync(response);
     }
 
     private void SetupRealtime(RunRealtimeReportResponse response)
     {
         _reportClientMock
-            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<string>(), It.IsAny<RunRealtimeReportRequest>()))
-            .Callback((string _, RunRealtimeReportRequest request) => _capturedRealtimeRequests.Add(request))
+            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>()))
+            .Callback((RunRealtimeReportRequest request) => _capturedRealtimeRequests.Add(request))
             .ReturnsAsync(response);
     }
 
     private void SetupReport(RunReportResponse response)
     {
         _reportClientMock
-            .Setup(x => x.RunReportAsync(It.IsAny<string>(), It.IsAny<RunReportRequest>()))
-            .Callback((string _, RunReportRequest request) => _capturedReportRequests.Add(request))
+            .Setup(x => x.RunReportAsync(It.IsAny<RunReportRequest>()))
+            .Callback((RunReportRequest request) => _capturedReportRequests.Add(request))
             .ReturnsAsync(response);
     }
 

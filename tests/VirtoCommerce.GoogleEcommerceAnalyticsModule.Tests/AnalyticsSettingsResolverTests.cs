@@ -30,14 +30,12 @@ public class AnalyticsSettingsResolverTests
     {
         SetupStore(CreateStore(
             (ModuleConstants.Settings.DataApi.PropertyId.Name, "123456"),
-            (ModuleConstants.Settings.DataApi.ServiceAccountJson.Name, "{}"),
             (ModuleConstants.Settings.DataApi.CacheTtlMinutes.Name, 15)));
         var resolver = CreateResolver();
 
         var settings = await resolver.ResolveAsync(StoreId);
 
         Assert.Equal("123456", settings.PropertyId);
-        Assert.Equal("{}", settings.CredentialJson);
         Assert.Equal(15, settings.CacheTtlMinutes);
         Assert.True(settings.IsConfigured);
     }
@@ -87,7 +85,6 @@ public class AnalyticsSettingsResolverTests
         var settings = await resolver.ResolveAsync(StoreId);
 
         Assert.Null(settings.PropertyId);
-        Assert.Null(settings.CredentialJson);
         Assert.False(settings.IsConfigured);
     }
 

@@ -32,17 +32,12 @@ public class AnalyticsServiceTests
     }
 
     [Theory]
-    [InlineData("123456", null, true)]
-    [InlineData("123456", "{}", true)]
-    [InlineData(null, "{}", false)]
-    [InlineData(null, null, false)]
-    public async Task IsConfiguredAsync_Matrix(string propertyId, string credentialJson, bool expected)
+    [InlineData("123456", true)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public async Task IsConfiguredAsync_Matrix(string propertyId, bool expected)
     {
-        var service = CreateService(new AnalyticsDataApiSettings
-        {
-            PropertyId = propertyId,
-            CredentialJson = credentialJson,
-        });
+        var service = CreateService(new AnalyticsDataApiSettings { PropertyId = propertyId });
 
         Assert.Equal(expected, await service.IsConfiguredAsync(StoreId));
     }
@@ -136,7 +131,6 @@ public class AnalyticsServiceTests
         Assert.Equal(ModuleConstants.SortBy.Count, capturedQuery.SortBy);
         Assert.Equal(criteria.DimensionNames, capturedQuery.DimensionNames);
         Assert.Equal("123456", capturedQuery.PropertyId);
-        Assert.Equal("{}", capturedQuery.CredentialJson);
         Assert.Equal(20, capturedQuery.Take);
         Assert.Equal(5, capturedQuery.Skip);
     }
@@ -258,7 +252,7 @@ public class AnalyticsServiceTests
 
     private AnalyticsService CreateGoogleConfiguredService(TimeSpan? failureCacheTtl = null)
     {
-        return CreateService(new AnalyticsDataApiSettings { PropertyId = "123456", CredentialJson = "{}" }, failureCacheTtl);
+        return CreateService(new AnalyticsDataApiSettings { PropertyId = "123456" }, failureCacheTtl);
     }
 
     private static AnalyticsEventSearchCriteria CreateSearchCriteria()

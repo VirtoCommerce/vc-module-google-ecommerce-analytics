@@ -147,7 +147,6 @@ public class AnalyticsService : IAnalyticsService
         return new AnalyticsDataQuery
         {
             PropertyId = settings.PropertyId,
-            CredentialJson = settings.CredentialJson,
             EventNames = criteria.EventNames,
             DimensionFilters = criteria.DimensionFilters,
             From = criteria.From,

@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Google.Apis.Auth.OAuth2;
-using Newtonsoft.Json;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 using Xunit;
 
@@ -10,90 +9,66 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests;
 public class GoogleAnalyticsReportClientTests
 {
     private const string AnalyticsReadOnlyScope = "https://www.googleapis.com/auth/analytics.readonly";
+    private const int PrivateKeySizeInBits = 2048;
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task ResolveCredentialAsync_NoJson_UsesApplicationDefaultCredentials(string credentialJson)
+    [Fact]
+    public async Task ResolveCredentialAsync_UsesApplicationDefaultCredentialsScopedForAnalytics()
     {
-        var client = new TestableReportClient();
+        var client = new TestableReportClient(CreateUnscopedCredential());
 
-        var credential = await client.ResolveAsync(credentialJson);
+        var credential = await client.ResolveAsync();
 
         Assert.Equal(1, client.AdcCallCount);
-        Assert.IsType<ServiceAccountCredential>(credential.UnderlyingCredential);
-        Assert.Contains(AnalyticsReadOnlyScope, ((ServiceAccountCredential)credential.UnderlyingCredential).Scopes);
-    }
-
-    [Fact]
-    public async Task ResolveCredentialAsync_ServiceAccountJson_CreatesScopedServiceAccountCredential()
-    {
-        var client = new TestableReportClient();
-
-        var credential = await client.ResolveAsync(CreateServiceAccountJson());
-
-        Assert.Equal(0, client.AdcCallCount);
         var serviceAccountCredential = Assert.IsType<ServiceAccountCredential>(credential.UnderlyingCredential);
         Assert.Contains(AnalyticsReadOnlyScope, serviceAccountCredential.Scopes);
-        Assert.False(credential.IsCreateScopedRequired);
     }
 
     [Fact]
-    public async Task ResolveCredentialAsync_ExternalAccountJson_CreatesWorkloadIdentityFederationCredential()
+    public async Task ResolveCredentialAsync_AlreadyScopedCredential_ReturnsItUnchanged()
     {
-        var client = new TestableReportClient();
+        var scopedCredential = CreateUnscopedCredential().CreateScoped(AnalyticsReadOnlyScope);
+        var client = new TestableReportClient(scopedCredential);
 
-        var credential = await client.ResolveAsync(CreateExternalAccountJson());
+        var credential = await client.ResolveAsync();
 
-        Assert.Equal(0, client.AdcCallCount);
-        Assert.NotNull(credential.UnderlyingCredential);
-        Assert.Contains("ExternalAccountCredential", credential.UnderlyingCredential.GetType().Name);
+        Assert.Equal(1, client.AdcCallCount);
+        Assert.Same(scopedCredential, credential);
         Assert.False(credential.IsCreateScopedRequired);
     }
 
-    private static string CreateServiceAccountJson()
+    private static GoogleCredential CreateUnscopedCredential()
     {
-        using var rsa = RSA.Create(2048);
+        using var rsa = RSA.Create(PrivateKeySizeInBits);
         var privateKey = PemEncoding.WriteString("PRIVATE KEY", rsa.ExportPkcs8PrivateKey());
 
-        return JsonConvert.SerializeObject(new
+        var initializer = new ServiceAccountCredential.Initializer("probe@test-project.iam.gserviceaccount.com")
         {
-            type = "service_account",
-            project_id = "test-project",
-            private_key_id = "key1",
-            private_key = privateKey,
-            client_email = "probe@test-project.iam.gserviceaccount.com",
-            client_id = "1",
-            token_uri = "https://oauth2.googleapis.com/token",
-        });
-    }
+            ProjectId = "test-project",
+        }.FromPrivateKey(privateKey);
 
-    private static string CreateExternalAccountJson()
-    {
-        return JsonConvert.SerializeObject(new
-        {
-            type = "external_account",
-            audience = "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/pool/providers/azure",
-            subject_token_type = "urn:ietf:params:oauth:token-type:jwt",
-            token_url = "https://sts.googleapis.com/v1/token",
-            credential_source = new { url = "https://login.example.com/token" },
-        });
+        return GoogleCredential.FromServiceAccountCredential(new ServiceAccountCredential(initializer));
     }
 
     private sealed class TestableReportClient : GoogleAnalyticsReportClient
     {
+        private readonly GoogleCredential _applicationDefaultCredential;
+
+        public TestableReportClient(GoogleCredential applicationDefaultCredential)
+        {
+            _applicationDefaultCredential = applicationDefaultCredential;
+        }
+
         public int AdcCallCount { get; private set; }
 
-        public Task<GoogleCredential> ResolveAsync(string credentialJson)
+        public Task<GoogleCredential> ResolveAsync()
         {
-            return ResolveCredentialAsync(credentialJson);
+            return ResolveCredentialAsync();
         }
 
         protected override Task<GoogleCredential> GetApplicationDefaultCredentialAsync()
         {
             AdcCallCount++;
-            return Task.FromResult(CredentialFactory.FromJson(CreateServiceAccountJson(), JsonCredentialParameters.ServiceAccountCredentialType));
+            return Task.FromResult(_applicationDefaultCredential);
         }
     }
 }

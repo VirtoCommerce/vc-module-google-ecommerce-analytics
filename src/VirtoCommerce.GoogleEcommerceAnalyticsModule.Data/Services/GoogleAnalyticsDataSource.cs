@@ -43,7 +43,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
 
     protected virtual async Task<AnalyticsEventSearchResult> GetEventScopedRowsAsync(AnalyticsDataQuery query)
     {
-        var response = await _reportClient.RunReportAsync(query.CredentialJson, BuildEventReportRequest(query));
+        var response = await _reportClient.RunReportAsync(BuildEventReportRequest(query));
         return MapResponse(response, query);
     }
 
@@ -51,7 +51,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     // kept as a separate path so it can be reworked without touching the main query path.
     protected virtual async Task<AnalyticsEventSearchResult> GetItemScopedRowsAsync(AnalyticsDataQuery query)
     {
-        var response = await _reportClient.RunReportAsync(query.CredentialJson, BuildItemReportRequest(query));
+        var response = await _reportClient.RunReportAsync(BuildItemReportRequest(query));
         var result = MapResponse(response, query);
 
         var eventName = query.EventNames?.Count == 1 ? query.EventNames[0] : null;

@@ -139,13 +139,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     ValueType = SettingValueType.ShortText
                 };
 
-                public static SettingDescriptor ServiceAccountJson { get; } = new SettingDescriptor
-                {
-                    Name = "GoogleAnalytics4.DataApi.ServiceAccountJson",
-                    GroupName = "Google Analytics 4",
-                    ValueType = SettingValueType.SecureString
-                };
-
                 public static SettingDescriptor CacheTtlMinutes { get; } = new SettingDescriptor
                 {
                     Name = "GoogleAnalytics4.DataApi.CacheTtlMinutes",
@@ -159,7 +152,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     get
                     {
                         yield return PropertyId;
-                        yield return ServiceAccountJson;
                         yield return CacheTtlMinutes;
                     }
                 }
@@ -173,7 +165,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     yield return General.MeasurementId;
                     yield return General.GtmContainerId;
                     yield return DataApi.PropertyId;
-                    yield return DataApi.ServiceAccountJson;
                     yield return DataApi.CacheTtlMinutes;
                 }
             }

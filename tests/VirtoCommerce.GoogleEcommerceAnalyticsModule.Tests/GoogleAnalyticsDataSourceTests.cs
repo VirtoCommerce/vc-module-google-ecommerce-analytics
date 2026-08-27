@@ -24,7 +24,6 @@ public class GoogleAnalyticsDataSourceTests
 
     private readonly Mock<IGoogleAnalyticsReportClient> _reportClientMock = new();
 
-    private string _capturedCredential;
     private RunReportRequest _capturedRequest;
 
     [Fact]
@@ -34,7 +33,6 @@ public class GoogleAnalyticsDataSourceTests
         var query = new AnalyticsDataQuery
         {
             PropertyId = "123456",
-            CredentialJson = "{}",
             EventNames = new List<string> { ModuleConstants.EventNames.Search },
             DimensionNames = new List<string> { ModuleConstants.Dimensions.SearchTerm, ModuleConstants.UserDimensions.OrganizationId },
             DimensionFilters = new List<AnalyticsDimensionFilter>
@@ -50,7 +48,6 @@ public class GoogleAnalyticsDataSourceTests
 
         await dataSource.GetRowsAsync(query);
 
-        Assert.Equal("{}", _capturedCredential);
         Assert.Equal("properties/123456", _capturedRequest.Property);
         Assert.Equal(10L, _capturedRequest.Limit);
         Assert.Equal(5L, _capturedRequest.Offset);
@@ -324,12 +321,8 @@ public class GoogleAnalyticsDataSourceTests
     private GoogleAnalyticsDataSource CreateDataSource(RunReportResponse response = null)
     {
         _reportClientMock
-            .Setup(x => x.RunReportAsync(It.IsAny<string>(), It.IsAny<RunReportRequest>()))
-            .Callback((string credential, RunReportRequest request) =>
-            {
-                _capturedCredential = credential;
-                _capturedRequest = request;
-            })
+            .Setup(x => x.RunReportAsync(It.IsAny<RunReportRequest>()))
+            .Callback((RunReportRequest request) => _capturedRequest = request)
             .ReturnsAsync(response ?? new RunReportResponse());
 
         return new GoogleAnalyticsDataSource(_reportClientMock.Object);

@@ -5,13 +5,13 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 
 public interface IGoogleAnalyticsReportClient
 {
-    Task ValidateCredentialAsync(string credentialJson);
+    Task ValidateCredentialAsync();
 
-    Task<Metadata> GetMetadataAsync(string credentialJson, string propertyId);
+    Task<Metadata> GetMetadataAsync(string propertyId);
 
-    Task<RunReportResponse> RunReportAsync(string credentialJson, RunReportRequest request);
+    Task<RunReportResponse> RunReportAsync(RunReportRequest request);
 
-    Task<RunRealtimeReportResponse> RunRealtimeReportAsync(string credentialJson, RunRealtimeReportRequest request);
+    Task<RunRealtimeReportResponse> RunRealtimeReportAsync(RunRealtimeReportRequest request);
 
-    Task<CheckCompatibilityResponse> CheckCompatibilityAsync(string credentialJson, CheckCompatibilityRequest request);
+    Task<CheckCompatibilityResponse> CheckCompatibilityAsync(CheckCompatibilityRequest request);
 }
