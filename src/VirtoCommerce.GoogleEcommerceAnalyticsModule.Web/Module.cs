@@ -25,8 +25,12 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
             serviceCollection.AddTransient<SampleAnalyticsDataSource>();
             serviceCollection.AddTransient<IAnalyticsSettingsResolver, AnalyticsSettingsResolver>();
             serviceCollection.AddTransient<IAnalyticsService, AnalyticsService>();
-            serviceCollection.AddTransient<IAnalyticsCompatibilityService, AnalyticsCompatibilityService>();
+            serviceCollection.AddTransient<IAnalyticsDiagnosticsService, AnalyticsDiagnosticsService>();
 
+            AbstractTypeFactory<AnalyticsDiagnosticsCheck>.RegisterType<AnalyticsDiagnosticsCheck>();
+            AbstractTypeFactory<AnalyticsDiagnosticsReportShape>.RegisterType<AnalyticsDiagnosticsReportShape>();
+            AbstractTypeFactory<AnalyticsDiagnosticsRequest>.RegisterType<AnalyticsDiagnosticsRequest>();
+            AbstractTypeFactory<AnalyticsDiagnosticsResult>.RegisterType<AnalyticsDiagnosticsResult>();
             AbstractTypeFactory<AnalyticsDimensionFilter>.RegisterType<AnalyticsDimensionFilter>();
             AbstractTypeFactory<AnalyticsEvent>.RegisterType<AnalyticsEvent>();
             AbstractTypeFactory<AnalyticsEventSearchCriteria>.RegisterType<AnalyticsEventSearchCriteria>();

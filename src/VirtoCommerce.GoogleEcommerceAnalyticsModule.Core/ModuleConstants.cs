@@ -60,6 +60,25 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
             public const string Count = "count";
         }
 
+        public static class DiagnosticsStages
+        {
+            public const string Configuration = "configuration";
+            public const string Credentials = "credentials";
+            public const string ApiAccess = "apiAccess";
+            public const string CustomDimensions = "customDimensions";
+            public const string ReportCompatibility = "reportCompatibility";
+            public const string Realtime = "realtime";
+            public const string ProcessedData = "processedData";
+        }
+
+        public static class DiagnosticsStatuses
+        {
+            public const string Passed = "Passed";
+            public const string Warning = "Warning";
+            public const string Failed = "Failed";
+            public const string Skipped = "Skipped";
+        }
+
         public static class Settings
         {
             public const string DefaultGoogleAnalyticsUrl = "https://analytics.google.com/analytics/web/";

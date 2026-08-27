@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
-using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
-using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 using VirtoCommerce.Platform.Core.Settings;
 using GoogleSettings = VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.ModuleConstants.Settings.General;
 
@@ -16,16 +14,16 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Controllers.Api
     {
         private readonly IGoogleAnalyticsSettingsManager _settings;
         private readonly ISettingsManager _settingsManager;
-        private readonly IAnalyticsCompatibilityService _compatibilityService;
+        private readonly IAnalyticsDiagnosticsService _diagnosticsService;
 
         public GoogleAnalyticsController(
             IGoogleAnalyticsSettingsManager settings,
             ISettingsManager settingsManager,
-            IAnalyticsCompatibilityService compatibilityService)
+            IAnalyticsDiagnosticsService diagnosticsService)
         {
             _settings = settings;
             _settingsManager = settingsManager;
-            _compatibilityService = compatibilityService;
+            _diagnosticsService = diagnosticsService;
         }
 
         [HttpGet]
@@ -35,12 +33,12 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Controllers.Api
             return _settings.GetAsync(storeId);
         }
 
-        [HttpGet]
-        [Route("{storeId}/compatibility")]
+        [HttpPost]
+        [Route("{storeId}/diagnostics")]
         [Authorize(ModuleConstants.Security.Permissions.Access)]
-        public async Task<ActionResult<AnalyticsCompatibilityResult>> CheckCompatibility(string storeId)
+        public async Task<ActionResult<AnalyticsDiagnosticsResult>> RunDiagnostics(string storeId, [FromBody] AnalyticsDiagnosticsRequest request)
         {
-            return Ok(await _compatibilityService.CheckCompatibilityAsync(storeId));
+            return Ok(await _diagnosticsService.RunAsync(storeId, request));
         }
 
         [HttpGet]

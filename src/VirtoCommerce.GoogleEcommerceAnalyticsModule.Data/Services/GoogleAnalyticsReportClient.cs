@@ -11,10 +11,27 @@ public class GoogleAnalyticsReportClient : IGoogleAnalyticsReportClient
 
     private static readonly string[] AnalyticsReadOnlyScopes = { "https://www.googleapis.com/auth/analytics.readonly" };
 
+    public virtual Task ValidateCredentialAsync(string credentialJson)
+    {
+        return ResolveCredentialAsync(credentialJson);
+    }
+
+    public virtual async Task<Metadata> GetMetadataAsync(string credentialJson, string propertyId)
+    {
+        var client = await CreateClientAsync(credentialJson);
+        return await client.GetMetadataAsync(new GetMetadataRequest { Name = $"properties/{propertyId}/metadata" });
+    }
+
     public virtual async Task<RunReportResponse> RunReportAsync(string credentialJson, RunReportRequest request)
     {
         var client = await CreateClientAsync(credentialJson);
         return await client.RunReportAsync(request);
+    }
+
+    public virtual async Task<RunRealtimeReportResponse> RunRealtimeReportAsync(string credentialJson, RunRealtimeReportRequest request)
+    {
+        var client = await CreateClientAsync(credentialJson);
+        return await client.RunRealtimeReportAsync(request);
     }
 
     public virtual async Task<CheckCompatibilityResponse> CheckCompatibilityAsync(string credentialJson, CheckCompatibilityRequest request)
