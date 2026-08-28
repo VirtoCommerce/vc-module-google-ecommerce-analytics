@@ -15,8 +15,9 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 public class AnalyticsService : IAnalyticsService
 {
     // Count mode returns one row per event name, so the totals read is bounded by the names asked for — or, when
-    // the caller names none, by GA4's per-property cap on distinct event names.
-    private const int MaxEventNames = 500;
+    // the caller names none, by this. GA4 allows a property up to 500 distinct event names, but a summary over
+    // hundreds of them is a reporting question, not a feature read: this bounds the probe fan-out below with it.
+    private const int MaxEventNames = 50;
 
     // Date mode orders by dateHour descending, so the newest bucket is the first row.
     private const int LatestBucketProbeSize = 1;
