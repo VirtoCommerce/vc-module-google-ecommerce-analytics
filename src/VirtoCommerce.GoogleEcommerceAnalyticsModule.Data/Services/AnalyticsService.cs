@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
@@ -13,7 +14,12 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 
 public class AnalyticsService : IAnalyticsService
 {
-    private const int SummaryRowsLimit = 100_000;
+    // Count mode returns one row per event name, so the totals read is bounded by the names asked for — or, when
+    // the caller names none, by GA4's per-property cap on distinct event names.
+    private const int MaxEventNames = 500;
+
+    // Date mode orders by dateHour descending, so the newest bucket is the first row.
+    private const int LatestBucketProbeSize = 1;
     private const string SearchOperation = "events search";
     private const string SummariesOperation = "event summaries";
 
@@ -79,14 +85,7 @@ public class AnalyticsService : IAnalyticsService
         var result = await GetOrCreateAsync(
             SummariesOperation,
             criteria,
-            async settings =>
-            {
-                var query = CreateQuery(settings, criteria);
-                query.Take = SummaryRowsLimit;
-
-                var rows = await _dataSource.GetRowsAsync(query);
-                return CreateSummaries(criteria, rows.Events);
-            },
+            settings => CreateSummariesAsync(settings, criteria),
             () => CreateEmptySummaries(criteria));
 
         return result.Select(x => x.CloneTyped()).ToList();
@@ -129,6 +128,47 @@ public class AnalyticsService : IAnalyticsService
             LogFailure(operation, criteria.StoreId, ex);
             return createEmptyResult();
         }
+    }
+
+    // A summary is a sum and a newest-occurrence per event name, and GA has no "max(dateHour)" aggregation — so
+    // reducing a fetched series here would transfer one row per event name PER HOUR (years of rows) to produce two
+    // numbers. Two narrow reads answer it instead: 'count' mode collapses to one row per event name carrying the
+    // summed metric, and a one-row 'date' probe per event name carries its newest bucket. Names with no events at
+    // all are not probed.
+    protected virtual async Task<IList<AnalyticsEventSummary>> CreateSummariesAsync(
+        AnalyticsDataApiSettings settings,
+        AnalyticsEventSummaryCriteria criteria)
+    {
+        var totalsQuery = CreateQuery(settings, criteria);
+        totalsQuery.SortBy = ModuleConstants.SortBy.Count;
+        totalsQuery.Take = criteria.EventNames.IsNullOrEmpty() ? MaxEventNames : criteria.EventNames.Count;
+
+        var totals = await _dataSource.GetRowsAsync(totalsQuery);
+
+        // Count-mode rows carry no date, so the summaries come back with a null LastOccurredAt that the probe fills.
+        var summaries = CreateSummaries(criteria, totals.Events);
+
+        foreach (var summary in summaries.Where(x => x.TotalCount > 0))
+        {
+            summary.LastOccurredAt = await GetLastOccurredAtAsync(settings, criteria, summary.EventName);
+        }
+
+        return summaries;
+    }
+
+    protected virtual async Task<DateTime?> GetLastOccurredAtAsync(
+        AnalyticsDataApiSettings settings,
+        AnalyticsEventSummaryCriteria criteria,
+        string eventName)
+    {
+        var query = CreateQuery(settings, criteria);
+        query.EventNames = [eventName];
+        query.SortBy = ModuleConstants.SortBy.Date;
+        query.Take = LatestBucketProbeSize;
+
+        var rows = await _dataSource.GetRowsAsync(query);
+
+        return rows.Events.Where(x => x.EventName == eventName).Max(x => x.OccurredAt);
     }
 
     protected virtual AnalyticsDataQuery CreateQuery(AnalyticsDataApiSettings settings, AnalyticsEventCriteriaBase criteria)

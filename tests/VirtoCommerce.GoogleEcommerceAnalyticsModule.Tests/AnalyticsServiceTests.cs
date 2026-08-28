@@ -218,6 +218,45 @@ public class AnalyticsServiceTests
     }
 
     [Fact]
+    public async Task GetEventSummariesAsync_ReadsNarrowly_NeverTheWholeHourlySeries()
+    {
+        var queries = new List<AnalyticsDataQuery>();
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .Callback<AnalyticsDataQuery>(queries.Add)
+            .ReturnsAsync(CreateSearchResult(
+                ("search", To.AddHours(-2), 2),
+                ("search", To, 3),
+                ("login", To.AddHours(-1), 5)));
+        var service = CreateGoogleConfiguredService();
+
+        var criteria = CreateSummaryCriteria(
+            ModuleConstants.EventNames.Search,
+            ModuleConstants.EventNames.Login,
+            ModuleConstants.EventNames.SignUp);
+        await service.GetEventSummariesAsync(criteria);
+
+        // One totals read for all three names, then a newest-bucket probe only for the two that have events:
+        // sign_up totals zero, so nothing is asked about its last occurrence.
+        Assert.Equal(3, queries.Count);
+
+        var totals = queries[0];
+        Assert.Equal(ModuleConstants.SortBy.Count, totals.SortBy);
+        Assert.Equal(3, totals.Take);
+        Assert.Equal(criteria.EventNames, totals.EventNames);
+
+        var probes = queries.Skip(1).ToList();
+        Assert.All(probes, x => Assert.Equal(ModuleConstants.SortBy.Date, x.SortBy));
+        Assert.All(probes, x => Assert.Equal(1, x.Take));
+        Assert.Equal(
+            new[] { ModuleConstants.EventNames.Search, ModuleConstants.EventNames.Login },
+            probes.Select(x => Assert.Single(x.EventNames)));
+
+        // The point of the shape: no read is proportional to the number of hours in the range.
+        Assert.All(queries, x => Assert.True(x.Take <= 3));
+    }
+
+    [Fact]
     public async Task GetEventSummariesAsync_NotConfigured_ReturnsZeroSummariesPerRequestedName()
     {
         var service = CreateService(new AnalyticsDataApiSettings());
