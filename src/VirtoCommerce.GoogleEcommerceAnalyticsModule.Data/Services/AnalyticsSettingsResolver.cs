@@ -25,11 +25,12 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
         var store = string.IsNullOrEmpty(storeId) ? null : await _storeService.GetNoCloneAsync(storeId);
         var storeSettings = store?.Settings;
 
-        return new AnalyticsDataApiSettings
-        {
-            PropertyId = await GetSettingAsync<string>(storeSettings, DataApiSettings.PropertyId),
-            CacheTtlMinutes = await GetSettingAsync<int>(storeSettings, DataApiSettings.CacheTtlMinutes),
-        };
+        var result = AbstractTypeFactory<AnalyticsDataApiSettings>.TryCreateInstance();
+
+        result.PropertyId = await GetSettingAsync<string>(storeSettings, DataApiSettings.PropertyId);
+        result.CacheTtlMinutes = await GetSettingAsync<int>(storeSettings, DataApiSettings.CacheTtlMinutes);
+
+        return result;
     }
 
     protected virtual async Task<T> GetSettingAsync<T>(ICollection<ObjectSettingEntry> storeSettings, SettingDescriptor descriptor)

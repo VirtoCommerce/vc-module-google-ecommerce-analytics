@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
@@ -26,6 +27,8 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
             serviceCollection.AddTransient<IAnalyticsService, AnalyticsService>();
             serviceCollection.AddTransient<IAnalyticsDiagnosticsService, AnalyticsDiagnosticsService>();
 
+            AbstractTypeFactory<AnalyticsDataApiSettings>.RegisterType<AnalyticsDataApiSettings>();
+            AbstractTypeFactory<AnalyticsDataQuery>.RegisterType<AnalyticsDataQuery>();
             AbstractTypeFactory<AnalyticsDiagnosticsCheck>.RegisterType<AnalyticsDiagnosticsCheck>();
             AbstractTypeFactory<AnalyticsDiagnosticsReportShape>.RegisterType<AnalyticsDiagnosticsReportShape>();
             AbstractTypeFactory<AnalyticsDiagnosticsRequest>.RegisterType<AnalyticsDiagnosticsRequest>();

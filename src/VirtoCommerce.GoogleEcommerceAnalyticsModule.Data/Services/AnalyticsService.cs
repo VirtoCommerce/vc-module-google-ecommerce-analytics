@@ -144,14 +144,15 @@ public class AnalyticsService : IAnalyticsService
 
     protected virtual AnalyticsDataQuery CreateQuery(AnalyticsDataApiSettings settings, AnalyticsEventCriteriaBase criteria)
     {
-        return new AnalyticsDataQuery
-        {
-            PropertyId = settings.PropertyId,
-            EventNames = criteria.EventNames,
-            DimensionFilters = criteria.DimensionFilters,
-            From = criteria.From,
-            To = criteria.To,
-        };
+        var query = AbstractTypeFactory<AnalyticsDataQuery>.TryCreateInstance();
+
+        query.PropertyId = settings.PropertyId;
+        query.EventNames = criteria.EventNames;
+        query.DimensionFilters = criteria.DimensionFilters;
+        query.From = criteria.From;
+        query.To = criteria.To;
+
+        return query;
     }
 
     protected virtual IList<AnalyticsEventSummary> CreateSummaries(AnalyticsEventSummaryCriteria criteria, IList<AnalyticsEvent> events)
