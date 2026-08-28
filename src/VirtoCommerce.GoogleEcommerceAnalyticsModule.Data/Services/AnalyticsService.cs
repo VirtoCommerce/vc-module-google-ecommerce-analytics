@@ -168,7 +168,7 @@ public class AnalyticsService : IAnalyticsService
 
         var rows = await _dataSource.GetRowsAsync(query);
 
-        return rows.Events.Where(x => x.EventName == eventName).Max(x => x.OccurredAt);
+        return rows.Events.Where(x => x.EventName.EqualsIgnoreCase(eventName)).Max(x => x.OccurredAt);
     }
 
     protected virtual AnalyticsDataQuery CreateQuery(AnalyticsDataApiSettings settings, AnalyticsEventCriteriaBase criteria)
