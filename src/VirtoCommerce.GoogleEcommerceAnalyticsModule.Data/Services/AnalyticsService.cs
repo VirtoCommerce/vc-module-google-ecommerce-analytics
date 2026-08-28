@@ -118,7 +118,7 @@ public class AnalyticsService : IAnalyticsService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Google Analytics {Operation} failed for store {StoreId}", operation, criteria.StoreId);
+                    LogFailure(operation, criteria.StoreId, ex);
                     cacheOptions.AbsoluteExpirationRelativeToNow = FailureCacheTtl;
                     return createEmptyResult();
                 }
@@ -126,7 +126,7 @@ public class AnalyticsService : IAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Google Analytics {Operation} failed for store {StoreId}", operation, criteria.StoreId);
+            LogFailure(operation, criteria.StoreId, ex);
             return createEmptyResult();
         }
     }
@@ -187,5 +187,10 @@ public class AnalyticsService : IAnalyticsService
     protected virtual TimeSpan GetCacheTtl(AnalyticsDataApiSettings settings)
     {
         return TimeSpan.FromMinutes(Math.Max(1, settings.CacheTtlMinutes));
+    }
+
+    private void LogFailure(string operation, string storeId, Exception exception)
+    {
+        _logger.LogWarning(exception, "Google Analytics {Operation} failed for store {StoreId}", operation, storeId);
     }
 }
