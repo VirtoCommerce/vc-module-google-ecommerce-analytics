@@ -35,12 +35,8 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
 
     protected virtual async Task<T> GetSettingAsync<T>(ICollection<ObjectSettingEntry> storeSettings, SettingDescriptor descriptor)
     {
-        var storeEntry = storeSettings?.FirstOrDefault(x => x.Name.EqualsIgnoreCase(descriptor.Name));
-        if (storeEntry?.Value != null)
-        {
-            return storeSettings.GetValue<T>(descriptor);
-        }
-
-        return await _settingsManager.GetValueAsync<T>(descriptor);
+        return storeSettings?.Any(x => x.Name.EqualsIgnoreCase(descriptor.Name) && x.Value != null) == true
+            ? storeSettings.GetValue<T>(descriptor)
+            : await _settingsManager.GetValueAsync<T>(descriptor);
     }
 }

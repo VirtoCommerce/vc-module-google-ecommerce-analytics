@@ -29,17 +29,6 @@ public class AnalyticsDiagnosticsServiceTests
     private const string StoreId = "test-store";
     private const string PropertyId = "123456";
 
-    private static readonly string[] StageOrder =
-    {
-        Stages.Configuration,
-        Stages.Credentials,
-        Stages.ApiAccess,
-        Stages.CustomDimensions,
-        Stages.ReportCompatibility,
-        Stages.Realtime,
-        Stages.ProcessedData,
-    };
-
     private static readonly string[] ExpectedReportDimensions = { "eventName", "dateHour", "searchTerm" };
     private static readonly string[] ExpectedFilteredDimensions = { "eventName", "customUser:session_kind", "customUser:organization_id" };
     private static readonly string[] ExpectedEventNameFilterValues = { "search", "view_search_results" };
@@ -49,7 +38,6 @@ public class AnalyticsDiagnosticsServiceTests
     private readonly Mock<IGoogleAnalyticsReportClient> _reportClientMock = new();
     private readonly List<CheckCompatibilityRequest> _capturedCompatibilityRequests = new();
     private readonly List<RunRealtimeReportRequest> _capturedRealtimeRequests = new();
-    private readonly List<RunReportRequest> _capturedReportRequests = new();
 
     [Fact]
     public async Task RunAsync_HappyPath_AllStagesPassInStableOrder()
@@ -509,7 +497,6 @@ public class AnalyticsDiagnosticsServiceTests
     {
         _reportClientMock
             .Setup(x => x.RunReportAsync(It.IsAny<RunReportRequest>()))
-            .Callback((RunReportRequest request) => _capturedReportRequests.Add(request))
             .ReturnsAsync(response);
     }
 
@@ -594,6 +581,6 @@ public class AnalyticsDiagnosticsServiceTests
 
     private static void AssertStageOrder(AnalyticsDiagnosticsResult result)
     {
-        Assert.Equal(StageOrder, result.Checks.Select(x => x.Stage));
+        Assert.Equal(ModuleConstants.DiagnosticsStages.AllStages, result.Checks.Select(x => x.Stage));
     }
 }

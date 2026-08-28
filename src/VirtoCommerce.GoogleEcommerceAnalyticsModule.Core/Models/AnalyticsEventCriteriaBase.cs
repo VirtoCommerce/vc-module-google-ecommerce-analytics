@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 
-public abstract class AnalyticsEventCriteriaBase
+public abstract class AnalyticsEventCriteriaBase : SearchCriteriaBase
 {
     public string StoreId { get; set; }
 

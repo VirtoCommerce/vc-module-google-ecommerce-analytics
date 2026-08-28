@@ -20,8 +20,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 
 public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
 {
-    private const string UserDimensionPrefix = "customUser:";
-    private const string EventCountMetric = "eventCount";
     private const string ApplicationDefaultCredentials = "Application Default Credentials";
     private const string ProbeFilterValue = "diagnostics-probe";
     private const string ProcessedDataStartDate = "7daysAgo";
@@ -34,17 +32,6 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     private const string UserProjectDeniedReason = "USER_PROJECT_DENIED";
     private const string ConsumerMetadataKey = "consumer";
     private const string ProjectResourcePrefix = "projects/";
-
-    private static readonly string[] AllStages =
-    {
-        Stages.Configuration,
-        Stages.Credentials,
-        Stages.ApiAccess,
-        Stages.CustomDimensions,
-        Stages.ReportCompatibility,
-        Stages.Realtime,
-        Stages.ProcessedData,
-    };
 
     private readonly IAnalyticsSettingsResolver _settingsResolver;
     private readonly IGoogleAnalyticsReportClient _reportClient;
@@ -111,7 +98,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         }
 
         AddCheck(checks, Stages.Configuration, Statuses.Passed,
-            $"Property {settings.PropertyId} configured; credential: {DescribeCredentialSource()}.");
+            $"Property {settings.PropertyId} configured; credential: {ApplicationDefaultCredentials}.");
         return settings;
     }
 
@@ -210,7 +197,9 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             .Select(x => x.ApiName)
             .Where(x => !string.IsNullOrEmpty(x))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var missingNames = requestedNames.Where(x => !registeredNames.Contains(UserDimensionPrefix + x)).ToList();
+        var missingNames = requestedNames
+            .Where(x => !registeredNames.Contains(ModuleConstants.UserDimensions.Prefix + x))
+            .ToList();
 
         if (missingNames.Count == 0)
         {
@@ -290,21 +279,21 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         try
         {
             RunRealtimeReportResponse response;
-            var checkedCustomDimensions = userDimensionNames.Count > 0;
+            var usedFallback = false;
 
             try
             {
                 response = await _reportClient.RunRealtimeReportAsync(
                     BuildRealtimeRequest(settings.PropertyId, userDimensionNames));
             }
-            catch (RpcException ex) when (checkedCustomDimensions && ex.StatusCode == StatusCode.InvalidArgument)
+            catch (RpcException ex) when (userDimensionNames.Count > 0 && ex.StatusCode == StatusCode.InvalidArgument)
             {
-                checkedCustomDimensions = false;
+                usedFallback = true;
                 response = await _reportClient.RunRealtimeReportAsync(
-                    BuildRealtimeRequest(settings.PropertyId, new List<string>()));
+                    BuildRealtimeRequest(settings.PropertyId, []));
             }
 
-            var fallbackNote = !checkedCustomDimensions && userDimensionNames.Count > 0
+            var fallbackNote = usedFallback
                 ? " Realtime does not support the custom dimensions on this property — checked event stream only."
                 : string.Empty;
             var eventCounts = AggregateEventCounts(response.DimensionHeaders, response.Rows);
@@ -353,7 +342,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         var request = new CheckCompatibilityRequest
         {
-            Property = $"properties/{propertyId}",
+            Property = AnalyticsFilterBuilder.PropertyName(propertyId),
             CompatibilityFilter = Compatibility.Incompatible,
         };
 
@@ -371,13 +360,13 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         var eventNames = (shape.EventNames ?? []).Where(x => !string.IsNullOrEmpty(x)).ToList();
         if (eventNames.Count > 0)
         {
-            expressions.Add(CreateInListExpression(ModuleConstants.Dimensions.EventName, eventNames));
+            expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.Dimensions.EventName, eventNames));
         }
 
         expressions.AddRange(userDimensionNames
-            .Select(x => CreateInListExpression(UserDimensionPrefix + x, new[] { ProbeFilterValue })));
+            .Select(x => AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.UserDimensions.Prefix + x, new[] { ProbeFilterValue })));
 
-        var dimensionFilter = CombineExpressions(expressions);
+        var dimensionFilter = AnalyticsFilterBuilder.Combine(expressions);
         if (dimensionFilter != null)
         {
             request.DimensionFilter = dimensionFilter;
@@ -390,17 +379,17 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         var request = new RunRealtimeReportRequest
         {
-            Property = $"properties/{propertyId}",
+            Property = AnalyticsFilterBuilder.PropertyName(propertyId),
             Limit = LiveDataRowsLimit,
         };
 
         request.Dimensions.Add(new Dimension { Name = ModuleConstants.Dimensions.EventName });
         foreach (var dimensionName in userDimensionNames)
         {
-            request.Dimensions.Add(new Dimension { Name = UserDimensionPrefix + dimensionName });
+            request.Dimensions.Add(new Dimension { Name = ModuleConstants.UserDimensions.Prefix + dimensionName });
         }
 
-        request.Metrics.Add(new Metric { Name = EventCountMetric });
+        request.Metrics.Add(new Metric { Name = ModuleConstants.Metrics.EventCount });
         request.MinuteRanges.Add(new MinuteRange { StartMinutesAgo = RealtimeMinutesAgo, EndMinutesAgo = 0 });
 
         return request;
@@ -410,13 +399,13 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         var request = new RunReportRequest
         {
-            Property = $"properties/{propertyId}",
+            Property = AnalyticsFilterBuilder.PropertyName(propertyId),
             Limit = LiveDataRowsLimit,
         };
 
         request.DateRanges.Add(new DateRange { StartDate = ProcessedDataStartDate, EndDate = ProcessedDataEndDate });
         request.Dimensions.Add(new Dimension { Name = ModuleConstants.Dimensions.EventName });
-        request.Metrics.Add(new Metric { Name = EventCountMetric });
+        request.Metrics.Add(new Metric { Name = ModuleConstants.Metrics.EventCount });
 
         return request;
     }
@@ -511,11 +500,6 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         return missingNames.Count > 0 ? $" Requested events not seen: {string.Join(", ", missingNames)}." : string.Empty;
     }
 
-    protected virtual string DescribeCredentialSource()
-    {
-        return ApplicationDefaultCredentials;
-    }
-
     protected virtual string DescribeError(Exception exception)
     {
         return exception is RpcException rpcException
@@ -533,20 +517,18 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
 
     protected virtual string MapDimensionName(string dimensionName, IList<string> userDimensionNames)
     {
-        return userDimensionNames.Contains(dimensionName) || ModuleConstants.UserDimensions.AllNames.Contains(dimensionName)
-            ? UserDimensionPrefix + dimensionName
-            : dimensionName;
+        return AnalyticsFilterBuilder.MapDimensionName(dimensionName, userDimensionNames);
     }
 
     protected virtual void SkipRemainingStages(IList<AnalyticsDiagnosticsCheck> checks, string message)
     {
-        foreach (var stage in AllStages.Skip(checks.Count))
+        foreach (var stage in Stages.AllStages.Except(checks.Select(x => x.Stage)))
         {
             AddCheck(checks, stage, Statuses.Skipped, message);
         }
     }
 
-    protected virtual AnalyticsDiagnosticsCheck AddCheck(IList<AnalyticsDiagnosticsCheck> checks, string stage, string status, string message, string detail = null)
+    protected virtual void AddCheck(IList<AnalyticsDiagnosticsCheck> checks, string stage, string status, string message, string detail = null)
     {
         var check = AbstractTypeFactory<AnalyticsDiagnosticsCheck>.TryCreateInstance();
         check.Stage = stage;
@@ -554,7 +536,6 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         check.Message = message;
         check.Detail = detail;
         checks.Add(check);
-        return check;
     }
 
     private static string GetProjectName(ErrorInfo errorInfo)
@@ -567,33 +548,5 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         return consumer.StartsWith(ProjectResourcePrefix, StringComparison.Ordinal)
             ? consumer[ProjectResourcePrefix.Length..]
             : consumer;
-    }
-
-    private static FilterExpression CombineExpressions(List<FilterExpression> expressions)
-    {
-        if (expressions.Count == 0)
-        {
-            return null;
-        }
-
-        if (expressions.Count == 1)
-        {
-            return expressions[0];
-        }
-
-        var result = new FilterExpression { AndGroup = new FilterExpressionList() };
-        result.AndGroup.Expressions.AddRange(expressions);
-        return result;
-    }
-
-    private static FilterExpression CreateInListExpression(string fieldName, IEnumerable<string> values)
-    {
-        var inListFilter = new Filter.Types.InListFilter();
-        inListFilter.Values.AddRange(values);
-
-        return new FilterExpression
-        {
-            Filter = new Filter { FieldName = fieldName, InListFilter = inListFilter },
-        };
     }
 }

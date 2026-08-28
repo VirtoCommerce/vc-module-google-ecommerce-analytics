@@ -98,6 +98,20 @@ public class AnalyticsServiceTests
     }
 
     [Fact]
+    public async Task SearchEventsAsync_DifferentDimensionFilterValues_UseDifferentCacheKeys()
+    {
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        var service = CreateGoogleConfiguredService();
+
+        await service.SearchEventsAsync(CreateSearchCriteria(organizationId: "org1"));
+        await service.SearchEventsAsync(CreateSearchCriteria(organizationId: "org2"));
+
+        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+    }
+
+    [Fact]
     public async Task SearchEventsAsync_ReturnsClonedResult()
     {
         _googleDataSourceMock
@@ -255,15 +269,25 @@ public class AnalyticsServiceTests
         return CreateService(new AnalyticsDataApiSettings { PropertyId = "123456" }, failureCacheTtl);
     }
 
-    private static AnalyticsEventSearchCriteria CreateSearchCriteria()
+    private static AnalyticsEventSearchCriteria CreateSearchCriteria(string organizationId = null)
     {
-        return new AnalyticsEventSearchCriteria
+        var criteria = new AnalyticsEventSearchCriteria
         {
             StoreId = StoreId,
             EventNames = new List<string> { ModuleConstants.EventNames.Search },
             To = To,
             Take = 20,
         };
+
+        if (organizationId != null)
+        {
+            criteria.DimensionFilters = new List<AnalyticsDimensionFilter>
+            {
+                new() { DimensionName = ModuleConstants.UserDimensions.OrganizationId, Values = new List<string> { organizationId } },
+            };
+        }
+
+        return criteria;
     }
 
     private static AnalyticsEventSummaryCriteria CreateSummaryCriteria(params string[] eventNames)

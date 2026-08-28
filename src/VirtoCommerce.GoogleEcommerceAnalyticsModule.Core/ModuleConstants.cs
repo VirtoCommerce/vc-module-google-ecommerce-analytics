@@ -28,6 +28,8 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
 
         public static class UserDimensions
         {
+            public const string Prefix = "customUser:";
+
             public const string ContactId = "contact_id";
             public const string OrganizationId = "organization_id";
             public const string OrganizationName = "organization_name";
@@ -53,6 +55,12 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
             public const string DateHour = "dateHour";
         }
 
+        public static class Metrics
+        {
+            public const string EventCount = "eventCount";
+            public const string ItemsViewed = "itemsViewed";
+        }
+
         public static class SortBy
         {
             public const string Date = "date";
@@ -68,6 +76,8 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
             public const string ReportCompatibility = "reportCompatibility";
             public const string Realtime = "realtime";
             public const string ProcessedData = "processedData";
+
+            public static string[] AllStages { get; } = { Configuration, Credentials, ApiAccess, CustomDimensions, ReportCompatibility, Realtime, ProcessedData };
         }
 
         public static class DiagnosticsStatuses

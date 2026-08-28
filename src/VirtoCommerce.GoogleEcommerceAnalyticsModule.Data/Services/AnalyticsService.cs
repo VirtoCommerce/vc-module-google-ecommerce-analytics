@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
@@ -15,6 +14,8 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 public class AnalyticsService : IAnalyticsService
 {
     private const int SummaryRowsLimit = 100_000;
+    private const string SearchOperation = "events search";
+    private const string SummariesOperation = "event summaries";
 
     private readonly IAnalyticsSettingsResolver _settingsResolver;
     private readonly IPlatformMemoryCache _platformMemoryCache;
@@ -53,93 +54,81 @@ public class AnalyticsService : IAnalyticsService
     {
         ArgumentNullException.ThrowIfNull(criteria);
 
-        try
-        {
-            var settings = await _settingsResolver.ResolveAsync(criteria.StoreId);
-            var dataSource = ResolveDataSource(settings);
-            if (dataSource == null)
+        var result = await GetOrCreateAsync(
+            SearchOperation,
+            criteria,
+            settings =>
             {
-                return AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance();
-            }
+                var query = CreateQuery(settings, criteria);
+                query.DimensionNames = criteria.DimensionNames;
+                query.SortBy = criteria.SortBy;
+                query.Take = criteria.Take;
+                query.Skip = criteria.Skip;
 
-            var cacheKey = CacheKey.With(GetType(), nameof(SearchEventsAsync), GetCriteriaCacheKey(criteria));
-            var result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>
-            {
-                cacheOptions.AbsoluteExpirationRelativeToNow = GetCacheTtl(settings);
+                return _googleAnalyticsDataSource.GetRowsAsync(query);
+            },
+            AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance);
 
-                try
-                {
-                    var query = CreateQuery(settings, criteria);
-                    query.DimensionNames = criteria.DimensionNames;
-                    query.SortBy = criteria.SortBy;
-                    query.Take = criteria.Take;
-                    query.Skip = criteria.Skip;
-
-                    return await dataSource.GetRowsAsync(query);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Google Analytics events search failed for store {StoreId}", criteria.StoreId);
-                    cacheOptions.AbsoluteExpirationRelativeToNow = FailureCacheTtl;
-                    return AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance();
-                }
-            });
-
-            return result?.CloneTyped() ?? AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Google Analytics events search failed for store {StoreId}", criteria.StoreId);
-            return AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance();
-        }
+        return result.CloneTyped();
     }
 
     public virtual async Task<IList<AnalyticsEventSummary>> GetEventSummariesAsync(AnalyticsEventSummaryCriteria criteria)
     {
         ArgumentNullException.ThrowIfNull(criteria);
 
+        var result = await GetOrCreateAsync(
+            SummariesOperation,
+            criteria,
+            async settings =>
+            {
+                var query = CreateQuery(settings, criteria);
+                query.Take = SummaryRowsLimit;
+
+                var rows = await _googleAnalyticsDataSource.GetRowsAsync(query);
+                return CreateSummaries(criteria, rows.Events);
+            },
+            () => CreateEmptySummaries(criteria));
+
+        return result.Select(x => x.CloneTyped()).ToList();
+    }
+
+    protected virtual async Task<T> GetOrCreateAsync<T>(
+        string operation,
+        AnalyticsEventCriteriaBase criteria,
+        Func<AnalyticsDataApiSettings, Task<T>> factory,
+        Func<T> createEmptyResult)
+    {
         try
         {
             var settings = await _settingsResolver.ResolveAsync(criteria.StoreId);
-            var dataSource = ResolveDataSource(settings);
-            if (dataSource == null)
+            if (!settings.IsConfigured)
             {
-                return CreateSummaries(criteria, new List<AnalyticsEvent>());
+                return createEmptyResult();
             }
 
-            var cacheKey = CacheKey.With(GetType(), nameof(GetEventSummariesAsync), GetCriteriaCacheKey(criteria));
-            var result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>
+            var cacheKey = CacheKey.With(GetType(), operation, criteria.GetCacheKey());
+
+            return await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>
             {
                 cacheOptions.AbsoluteExpirationRelativeToNow = GetCacheTtl(settings);
 
                 try
                 {
-                    var query = CreateQuery(settings, criteria);
-                    query.Take = SummaryRowsLimit;
-
-                    var rows = await dataSource.GetRowsAsync(query);
-                    return CreateSummaries(criteria, rows.Events);
+                    return await factory(settings);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Google Analytics event summaries failed for store {StoreId}", criteria.StoreId);
+                    _logger.LogWarning(ex, "Google Analytics {Operation} failed for store {StoreId}", operation, criteria.StoreId);
                     cacheOptions.AbsoluteExpirationRelativeToNow = FailureCacheTtl;
-                    return CreateSummaries(criteria, new List<AnalyticsEvent>());
+                    return createEmptyResult();
                 }
             });
-
-            return result?.Select(x => x.CloneTyped()).ToList() ?? CreateSummaries(criteria, new List<AnalyticsEvent>());
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Google Analytics event summaries failed for store {StoreId}", criteria.StoreId);
-            return CreateSummaries(criteria, new List<AnalyticsEvent>());
+            _logger.LogWarning(ex, "Google Analytics {Operation} failed for store {StoreId}", operation, criteria.StoreId);
+            return createEmptyResult();
         }
-    }
-
-    protected virtual IAnalyticsDataSource ResolveDataSource(AnalyticsDataApiSettings settings)
-    {
-        return settings.IsConfigured ? _googleAnalyticsDataSource : null;
     }
 
     protected virtual AnalyticsDataQuery CreateQuery(AnalyticsDataApiSettings settings, AnalyticsEventCriteriaBase criteria)
@@ -155,14 +144,28 @@ public class AnalyticsService : IAnalyticsService
         return query;
     }
 
+    // Not an empty list: requested event names still yield zero-count summaries.
+    protected virtual IList<AnalyticsEventSummary> CreateEmptySummaries(AnalyticsEventSummaryCriteria criteria)
+    {
+        return CreateSummaries(criteria, []);
+    }
+
     protected virtual IList<AnalyticsEventSummary> CreateSummaries(AnalyticsEventSummaryCriteria criteria, IList<AnalyticsEvent> events)
     {
-        var groups = events
-            .Where(x => !string.IsNullOrEmpty(x.EventName))
-            .GroupBy(x => x.EventName)
-            .ToDictionary(x => x.Key, x => x.ToList());
+        var aggregates = new Dictionary<string, (int TotalCount, DateTime? LastOccurredAt)>();
 
-        var eventNames = criteria.EventNames?.Count > 0 ? criteria.EventNames : groups.Keys.ToList();
+        foreach (var analyticsEvent in events.Where(x => !string.IsNullOrEmpty(x.EventName)))
+        {
+            aggregates.TryGetValue(analyticsEvent.EventName, out var aggregate);
+
+            aggregates[analyticsEvent.EventName] = (
+                aggregate.TotalCount + analyticsEvent.Count,
+                aggregate.LastOccurredAt == null || analyticsEvent.OccurredAt > aggregate.LastOccurredAt
+                    ? analyticsEvent.OccurredAt
+                    : aggregate.LastOccurredAt);
+        }
+
+        var eventNames = criteria.EventNames.IsNullOrEmpty() ? aggregates.Keys.ToList() : criteria.EventNames;
 
         return eventNames
             .Select(eventName =>
@@ -170,10 +173,10 @@ public class AnalyticsService : IAnalyticsService
                 var summary = AbstractTypeFactory<AnalyticsEventSummary>.TryCreateInstance();
                 summary.EventName = eventName;
 
-                if (groups.TryGetValue(eventName, out var group))
+                if (aggregates.TryGetValue(eventName, out var aggregate))
                 {
-                    summary.TotalCount = group.Sum(x => x.Count);
-                    summary.LastOccurredAt = group.Max(x => x.OccurredAt);
+                    summary.TotalCount = aggregate.TotalCount;
+                    summary.LastOccurredAt = aggregate.LastOccurredAt;
                 }
 
                 return summary;
@@ -181,12 +184,7 @@ public class AnalyticsService : IAnalyticsService
             .ToList();
     }
 
-    protected virtual string GetCriteriaCacheKey(AnalyticsEventCriteriaBase criteria)
-    {
-        return JsonConvert.SerializeObject(criteria);
-    }
-
-    private static TimeSpan GetCacheTtl(AnalyticsDataApiSettings settings)
+    protected virtual TimeSpan GetCacheTtl(AnalyticsDataApiSettings settings)
     {
         return TimeSpan.FromMinutes(Math.Max(1, settings.CacheTtlMinutes));
     }

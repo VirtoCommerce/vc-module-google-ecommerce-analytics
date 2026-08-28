@@ -11,12 +11,9 @@ using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 
-public class GoogleAnalyticsDataSource : IAnalyticsDataSource
+public class GoogleAnalyticsDataSource
 {
     private const string NotSetValue = "(not set)";
-    private const string UserDimensionPrefix = "customUser:";
-    private const string EventCountMetric = "eventCount";
-    private const string ItemsViewedMetric = "itemsViewed";
     private const string DateHourFormat = "yyyyMMddHH";
     private const string DateFormat = "yyyy-MM-dd";
     private const string DefaultStartDate = "2015-08-14";
@@ -66,28 +63,28 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
         return result;
     }
 
-    public virtual RunReportRequest BuildEventReportRequest(AnalyticsDataQuery query)
+    protected virtual RunReportRequest BuildEventReportRequest(AnalyticsDataQuery query)
     {
         var request = CreateRequest(query);
 
         request.Dimensions.Add(new Dimension { Name = ModuleConstants.Dimensions.EventName });
         AddDateHourAndExtraDimensions(request, query);
 
-        request.Metrics.Add(new Metric { Name = EventCountMetric });
-        AddOrderBy(request, query, EventCountMetric);
+        request.Metrics.Add(new Metric { Name = ModuleConstants.Metrics.EventCount });
+        AddOrderBy(request, query, ModuleConstants.Metrics.EventCount);
 
         return request;
     }
 
     // Item-scoped report shape per the GA4 schema: metric itemsViewed, eventName used only as a dimension filter.
-    public virtual RunReportRequest BuildItemReportRequest(AnalyticsDataQuery query)
+    protected virtual RunReportRequest BuildItemReportRequest(AnalyticsDataQuery query)
     {
         var request = CreateRequest(query);
 
         AddDateHourAndExtraDimensions(request, query);
 
-        request.Metrics.Add(new Metric { Name = ItemsViewedMetric });
-        AddOrderBy(request, query, ItemsViewedMetric);
+        request.Metrics.Add(new Metric { Name = ModuleConstants.Metrics.ItemsViewed });
+        AddOrderBy(request, query, ModuleConstants.Metrics.ItemsViewed);
 
         return request;
     }
@@ -96,7 +93,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     {
         var request = new RunReportRequest
         {
-            Property = $"properties/{query.PropertyId}",
+            Property = AnalyticsFilterBuilder.PropertyName(query.PropertyId),
             Limit = query.Take > 0 ? query.Take : 1,
             Offset = query.Skip,
         };
@@ -123,7 +120,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
             request.Dimensions.Add(new Dimension { Name = ModuleConstants.Dimensions.DateHour });
         }
 
-        foreach (var dimensionName in (query.DimensionNames ?? Array.Empty<string>())
+        foreach (var dimensionName in (query.DimensionNames ?? [])
                      .Where(x => x != ModuleConstants.Dimensions.EventName && x != ModuleConstants.Dimensions.DateHour))
         {
             request.Dimensions.Add(new Dimension { Name = MapDimensionName(dimensionName) });
@@ -149,30 +146,18 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     {
         var expressions = new List<FilterExpression>();
 
-        if (query.EventNames?.Count > 0)
+        if (!query.EventNames.IsNullOrEmpty())
         {
-            expressions.Add(CreateInListExpression(ModuleConstants.Dimensions.EventName, query.EventNames));
+            expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.Dimensions.EventName, query.EventNames));
         }
 
-        foreach (var filter in (query.DimensionFilters ?? Array.Empty<AnalyticsDimensionFilter>())
-                     .Where(x => !string.IsNullOrEmpty(x.DimensionName) && x.Values?.Count > 0))
+        foreach (var filter in (query.DimensionFilters ?? [])
+                     .Where(x => !string.IsNullOrEmpty(x.DimensionName) && !x.Values.IsNullOrEmpty()))
         {
-            expressions.Add(CreateInListExpression(MapDimensionName(filter.DimensionName), filter.Values));
+            expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(MapDimensionName(filter.DimensionName), filter.Values));
         }
 
-        if (expressions.Count == 0)
-        {
-            return null;
-        }
-
-        if (expressions.Count == 1)
-        {
-            return expressions[0];
-        }
-
-        var result = new FilterExpression { AndGroup = new FilterExpressionList() };
-        result.AndGroup.Expressions.AddRange(expressions);
-        return result;
+        return AnalyticsFilterBuilder.Combine(expressions);
     }
 
     protected virtual AnalyticsEventSearchResult MapResponse(RunReportResponse response, AnalyticsDataQuery query)
@@ -230,15 +215,13 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
 
     protected virtual string MapDimensionName(string dimensionName)
     {
-        return ModuleConstants.UserDimensions.AllNames.Contains(dimensionName)
-            ? UserDimensionPrefix + dimensionName
-            : dimensionName;
+        return AnalyticsFilterBuilder.MapDimensionName(dimensionName);
     }
 
     protected virtual string UnmapDimensionName(string dimensionName)
     {
-        return dimensionName.StartsWith(UserDimensionPrefix, StringComparison.Ordinal)
-            ? dimensionName[UserDimensionPrefix.Length..]
+        return dimensionName.StartsWith(ModuleConstants.UserDimensions.Prefix, StringComparison.Ordinal)
+            ? dimensionName[ModuleConstants.UserDimensions.Prefix.Length..]
             : dimensionName;
     }
 
@@ -251,17 +234,6 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     protected static bool IsCountSort(AnalyticsDataQuery query)
     {
         return ModuleConstants.SortBy.Count.EqualsIgnoreCase(query.SortBy);
-    }
-
-    private static FilterExpression CreateInListExpression(string fieldName, IEnumerable<string> values)
-    {
-        var inListFilter = new Filter.Types.InListFilter();
-        inListFilter.Values.AddRange(values);
-
-        return new FilterExpression
-        {
-            Filter = new Filter { FieldName = fieldName, InListFilter = inListFilter },
-        };
     }
 
     private static DateTime? ParseDateHour(string value)
