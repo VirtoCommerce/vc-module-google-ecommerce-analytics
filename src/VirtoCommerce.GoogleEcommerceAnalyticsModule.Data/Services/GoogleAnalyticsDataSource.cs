@@ -11,7 +11,7 @@ using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 
-public class GoogleAnalyticsDataSource
+public class GoogleAnalyticsDataSource : IAnalyticsDataSource
 {
     private const string NotSetValue = "(not set)";
     private const string DateHourFormat = "yyyyMMddHH";

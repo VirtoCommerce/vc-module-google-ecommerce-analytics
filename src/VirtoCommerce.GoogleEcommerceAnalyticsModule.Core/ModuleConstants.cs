@@ -39,12 +39,6 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
             public static string[] AllNames { get; } = { ContactId, OrganizationId, OrganizationName, IsSalesRep, SessionKind };
         }
 
-        public static class SessionKinds
-        {
-            public const string Self = "self";
-            public const string Impersonated = "impersonated";
-        }
-
         public static class Dimensions
         {
             public const string SearchTerm = "searchTerm";

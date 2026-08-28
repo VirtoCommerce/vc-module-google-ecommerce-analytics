@@ -19,18 +19,18 @@ public class AnalyticsService : IAnalyticsService
 
     private readonly IAnalyticsSettingsResolver _settingsResolver;
     private readonly IPlatformMemoryCache _platformMemoryCache;
-    private readonly GoogleAnalyticsDataSource _googleAnalyticsDataSource;
+    private readonly IAnalyticsDataSource _dataSource;
     private readonly ILogger<AnalyticsService> _logger;
 
     public AnalyticsService(
         IAnalyticsSettingsResolver settingsResolver,
         IPlatformMemoryCache platformMemoryCache,
-        GoogleAnalyticsDataSource googleAnalyticsDataSource,
+        IAnalyticsDataSource dataSource,
         ILogger<AnalyticsService> logger)
     {
         _settingsResolver = settingsResolver;
         _platformMemoryCache = platformMemoryCache;
-        _googleAnalyticsDataSource = googleAnalyticsDataSource;
+        _dataSource = dataSource;
         _logger = logger;
     }
 
@@ -65,7 +65,7 @@ public class AnalyticsService : IAnalyticsService
                 query.Take = criteria.Take;
                 query.Skip = criteria.Skip;
 
-                return _googleAnalyticsDataSource.GetRowsAsync(query);
+                return _dataSource.GetRowsAsync(query);
             },
             AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance);
 
@@ -84,7 +84,7 @@ public class AnalyticsService : IAnalyticsService
                 var query = CreateQuery(settings, criteria);
                 query.Take = SummaryRowsLimit;
 
-                var rows = await _googleAnalyticsDataSource.GetRowsAsync(query);
+                var rows = await _dataSource.GetRowsAsync(query);
                 return CreateSummaries(criteria, rows.Events);
             },
             () => CreateEmptySummaries(criteria));
