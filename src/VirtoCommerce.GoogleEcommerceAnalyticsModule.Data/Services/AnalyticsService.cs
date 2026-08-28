@@ -20,6 +20,10 @@ public class AnalyticsService : IAnalyticsService
 
     // Date mode orders by dateHour descending, so the newest bucket is the first row.
     private const int LatestBucketProbeSize = 1;
+
+    // The probes are independent, so they run together instead of nose to tail. Capped rather than unbounded:
+    // GA4 limits concurrent requests per property, and a criteria naming no events can carry MaxEventNames.
+    private const int MaxProbeConcurrency = 4;
     private const string SearchOperation = "events search";
     private const string SummariesOperation = "event summaries";
 
@@ -148,10 +152,13 @@ public class AnalyticsService : IAnalyticsService
         // Count-mode rows carry no date, so the summaries come back with a null LastOccurredAt that the probe fills.
         var summaries = CreateSummaries(criteria, totals.Events);
 
-        foreach (var summary in summaries.Where(x => x.TotalCount > 0))
-        {
-            summary.LastOccurredAt = await GetLastOccurredAtAsync(settings, criteria, summary.EventName);
-        }
+        await Parallel.ForEachAsync(
+            summaries.Where(x => x.TotalCount > 0),
+            new ParallelOptions { MaxDegreeOfParallelism = MaxProbeConcurrency },
+            async (summary, _) =>
+            {
+                summary.LastOccurredAt = await GetLastOccurredAtAsync(settings, criteria, summary.EventName);
+            });
 
         return summaries;
     }

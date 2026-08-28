@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -220,10 +221,11 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task GetEventSummariesAsync_ReadsNarrowly_NeverTheWholeHourlySeries()
     {
-        var queries = new List<AnalyticsDataQuery>();
+        // Concurrent, because the probes run in parallel; enqueue order still puts the awaited totals read first.
+        var queries = new ConcurrentQueue<AnalyticsDataQuery>();
         _googleDataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .Callback<AnalyticsDataQuery>(queries.Add)
+            .Callback<AnalyticsDataQuery>(queries.Enqueue)
             .ReturnsAsync(CreateSearchResult(
                 ("search", To.AddHours(-2), 2),
                 ("search", To, 3),
@@ -238,22 +240,24 @@ public class AnalyticsServiceTests
 
         // One totals read for all three names, then a newest-bucket probe only for the two that have events:
         // sign_up totals zero, so nothing is asked about its last occurrence.
-        Assert.Equal(3, queries.Count);
+        var reads = queries.ToList();
+        Assert.Equal(3, reads.Count);
 
-        var totals = queries[0];
+        var totals = reads[0];
         Assert.Equal(ModuleConstants.SortBy.Count, totals.SortBy);
         Assert.Equal(3, totals.Take);
         Assert.Equal(criteria.EventNames, totals.EventNames);
 
-        var probes = queries.Skip(1).ToList();
+        var probes = reads.Skip(1).ToList();
         Assert.All(probes, x => Assert.Equal(ModuleConstants.SortBy.Date, x.SortBy));
         Assert.All(probes, x => Assert.Equal(1, x.Take));
+        // Unordered: the probes run concurrently.
         Assert.Equal(
-            new[] { ModuleConstants.EventNames.Search, ModuleConstants.EventNames.Login },
-            probes.Select(x => Assert.Single(x.EventNames)));
+            new[] { ModuleConstants.EventNames.Login, ModuleConstants.EventNames.Search },
+            probes.Select(x => Assert.Single(x.EventNames)).OrderBy(x => x, StringComparer.Ordinal));
 
         // The point of the shape: no read is proportional to the number of hours in the range.
-        Assert.All(queries, x => Assert.True(x.Take <= 3));
+        Assert.All(reads, x => Assert.True(x.Take <= 3));
     }
 
     [Fact]
