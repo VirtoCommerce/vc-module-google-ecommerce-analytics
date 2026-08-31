@@ -253,7 +253,7 @@ public class AnalyticsServiceTests
         Assert.All(probes, x => Assert.Equal(1, x.Take));
         // Unordered: the probes run concurrently.
         Assert.Equal(
-            new[] { ModuleConstants.EventNames.Login, ModuleConstants.EventNames.Search },
+            [ModuleConstants.EventNames.Login, ModuleConstants.EventNames.Search],
             probes.Select(x => Assert.Single(x.EventNames)).OrderBy(x => x, StringComparer.Ordinal));
 
         // The point of the shape: no read is proportional to the number of hours in the range.

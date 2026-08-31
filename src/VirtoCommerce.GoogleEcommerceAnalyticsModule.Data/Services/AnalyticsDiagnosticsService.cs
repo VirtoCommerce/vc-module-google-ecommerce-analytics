@@ -364,7 +364,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         }
 
         expressions.AddRange(userDimensionNames
-            .Select(x => AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.UserDimensions.Prefix + x, new[] { ProbeFilterValue })));
+            .Select(x => AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.UserDimensions.Prefix + x, [ProbeFilterValue])));
 
         var dimensionFilter = AnalyticsFilterBuilder.Combine(expressions);
         if (dimensionFilter != null)
