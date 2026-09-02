@@ -3,12 +3,16 @@ Google Analytics 4 module allows you to assign Google Analytics Measurement Id a
 
 The module supports both direct GA4 integration and advanced Google Tag Manager integration for centralized tag management.
 
+It also **reads back** from GA4 through the Data API, so other modules can ask what the collected events say — see [Reading analytics data](#reading-analytics-data).
+
 ## Key Features
 1. Store Configuration.
 1. Measure ecommerce with Vue B2B Theme and Virto Storefront.
 1. Google Tag Manager integration for advanced tracking and tag management.
 1. Ready for integration with other sales channels.
 1. Application menu.
+1. Reporting API: read collected events back from GA4 (`IAnalyticsService`) for other modules to build on.
+1. Staged connection diagnostics for the reporting setup.
 
 ## Screenshots
 ![Google Analytics 4](docs/media/ga4-realtime.png)
@@ -106,6 +110,23 @@ This allows you to:
 The module adds `Google Analytics` link into Application menu. It redirects to Google Analytics Dashboard. You could customize Google Analytics Dashboard Url in Platform Settings.
 
 ![Google Analytics 4 App Menu](docs/media/app-menu.png)
+
+## Reading analytics data
+
+Besides tagging, the module can **read** GA4 through the Data API (`runReport`) and expose the result in-process as
+`IAnalyticsService` — events, dimensions, filters and date ranges, with no domain concepts of its own. It has no
+GraphQL surface; consumers build their own fields on top of it (the first is
+[VirtoCommerce.SalesRep](https://github.com/VirtoCommerce/vc-module-sales-rep), which turns it into rep-facing
+customer insights).
+
+Reporting needs two extra store settings — the numeric **GA4 property id** and a report cache lifetime — plus
+**Application Default Credentials** with the `analytics.readonly` scope and Viewer on the property. There is
+deliberately no credential *setting*, so no key material is stored in the platform database.
+`POST api/googleanalytics/{storeId}/diagnostics` runs a staged checklist that names exactly what is missing.
+
+Two limits are properties of the source rather than of this module: GA4 takes up to **24-48 hours** to process
+events, and reports are **aggregates** whose finest time dimension is the hour. Setup steps, the settings, the
+credential prerequisites and the diagnostics payload are documented in [docs/index.md](docs/index.md).
 
 ## Documentation
 * [Google Analytics 4](https://developers.google.com/analytics/devguides/collection/ga4)

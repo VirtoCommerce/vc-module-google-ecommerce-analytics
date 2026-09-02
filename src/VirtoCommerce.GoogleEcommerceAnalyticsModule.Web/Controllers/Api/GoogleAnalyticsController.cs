@@ -14,11 +14,16 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Controllers.Api
     {
         private readonly IGoogleAnalyticsSettingsManager _settings;
         private readonly ISettingsManager _settingsManager;
+        private readonly IAnalyticsDiagnosticsService _diagnosticsService;
 
-        public GoogleAnalyticsController(IGoogleAnalyticsSettingsManager settings, ISettingsManager settingsManager)
+        public GoogleAnalyticsController(
+            IGoogleAnalyticsSettingsManager settings,
+            ISettingsManager settingsManager,
+            IAnalyticsDiagnosticsService diagnosticsService)
         {
             _settings = settings;
             _settingsManager = settingsManager;
+            _diagnosticsService = diagnosticsService;
         }
 
         [HttpGet]
@@ -26,6 +31,14 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web.Controllers.Api
         public Task<GoogleAnalyticsSettings> GetStoreSettings(string storeId)
         {
             return _settings.GetAsync(storeId);
+        }
+
+        [HttpPost]
+        [Route("{storeId}/diagnostics")]
+        [Authorize(ModuleConstants.Security.Permissions.Access)]
+        public async Task<ActionResult<AnalyticsDiagnosticsResult>> RunDiagnostics(string storeId, [FromBody] AnalyticsDiagnosticsRequest request)
+        {
+            return Ok(await _diagnosticsService.RunAsync(storeId, request));
         }
 
         [HttpGet]
