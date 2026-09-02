@@ -4,5 +4,5 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 
 public class AnalyticsDiagnosticsResult
 {
-    public IList<AnalyticsDiagnosticsCheck> Checks { get; set; } = new List<AnalyticsDiagnosticsCheck>();
+    public IList<AnalyticsDiagnosticsCheck> Checks { get; set; } = [];
 }

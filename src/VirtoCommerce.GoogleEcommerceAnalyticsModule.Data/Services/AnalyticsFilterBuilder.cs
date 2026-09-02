@@ -13,6 +13,8 @@ internal static class AnalyticsFilterBuilder
         return $"properties/{propertyId}";
     }
 
+    // Ordinal on purpose: GA4 field names are case-sensitive, so a mis-cased name is rejected by the API
+    // whether or not it is prefixed, and the response echoes back the exact name that was sent.
     public static string MapDimensionName(string dimensionName, IList<string> extraUserDimensionNames = null)
     {
         return ModuleConstants.UserDimensions.AllNames.Contains(dimensionName) || extraUserDimensionNames?.Contains(dimensionName) == true

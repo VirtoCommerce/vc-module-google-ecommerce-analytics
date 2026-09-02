@@ -8,9 +8,9 @@ public abstract class AnalyticsEventCriteriaBase : SearchCriteriaBase
 {
     public string StoreId { get; set; }
 
-    public IList<string> EventNames { get; set; } = new List<string>();
+    public IList<string> EventNames { get; set; } = [];
 
-    public IList<AnalyticsDimensionFilter> DimensionFilters { get; set; } = new List<AnalyticsDimensionFilter>();
+    public IList<AnalyticsDimensionFilter> DimensionFilters { get; set; } = [];
 
     public DateTime? From { get; set; }
 

@@ -9,7 +9,7 @@ public class AnalyticsEventSearchResult : ICloneable
 {
     public int TotalCount { get; set; }
 
-    public IList<AnalyticsEvent> Events { get; set; } = new List<AnalyticsEvent>();
+    public IList<AnalyticsEvent> Events { get; set; } = [];
 
     public virtual object Clone()
     {

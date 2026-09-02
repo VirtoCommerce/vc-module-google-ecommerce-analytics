@@ -7,5 +7,5 @@ public class AnalyticsDimensionFilter : ValueObject
 {
     public string DimensionName { get; set; }
 
-    public IList<string> Values { get; set; } = new List<string>();
+    public IList<string> Values { get; set; } = [];
 }

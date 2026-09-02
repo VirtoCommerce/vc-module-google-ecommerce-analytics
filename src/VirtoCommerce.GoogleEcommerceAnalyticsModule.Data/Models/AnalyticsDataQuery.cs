@@ -9,11 +9,11 @@ public class AnalyticsDataQuery
 {
     public string PropertyId { get; set; }
 
-    public IList<string> EventNames { get; set; } = new List<string>();
+    public IList<string> EventNames { get; set; } = [];
 
-    public IList<AnalyticsDimensionFilter> DimensionFilters { get; set; } = new List<AnalyticsDimensionFilter>();
+    public IList<AnalyticsDimensionFilter> DimensionFilters { get; set; } = [];
 
-    public IList<string> DimensionNames { get; set; } = new List<string>();
+    public IList<string> DimensionNames { get; set; } = [];
 
     public string SortBy { get; set; } = ModuleConstants.SortBy.Date;
 

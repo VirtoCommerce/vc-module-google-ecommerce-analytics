@@ -463,7 +463,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             .Select(x => (int?)x.Index)
             .FirstOrDefault();
 
-        var counts = new Dictionary<string, long>();
+        var counts = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var row in rows)
         {

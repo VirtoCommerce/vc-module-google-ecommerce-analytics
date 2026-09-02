@@ -200,7 +200,7 @@ public class AnalyticsService : IAnalyticsService
 
     protected virtual IList<AnalyticsEventSummary> CreateSummaries(AnalyticsEventSummaryCriteria criteria, IList<AnalyticsEvent> events)
     {
-        var aggregates = new Dictionary<string, (int TotalCount, DateTime? LastOccurredAt)>();
+        var aggregates = new Dictionary<string, (int TotalCount, DateTime? LastOccurredAt)>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var analyticsEvent in events.Where(x => !string.IsNullOrEmpty(x.EventName)))
         {
