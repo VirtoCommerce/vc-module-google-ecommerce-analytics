@@ -78,7 +78,10 @@ needed if another module consumes `IAnalyticsService`.
    Settings > Property Details), e.g. `123456789`. This is *not* the `G-XXXXXXXXXX` measurement id.
 1. **GoogleAnalytics4.DataApi.CacheTtlMinutes** - how long a successful report is cached per store and query
    (default `60`). Data API tokens are metered per property per day, so caching is a quota requirement rather than
-   tuning; failed reports are cached for a fixed 60 seconds so a misconfiguration cannot burn quota.
+   tuning; failed reports are cached for a fixed 60 seconds so a misconfiguration cannot burn quota. Set it to
+   **`0`** to read Google on every call, and note that the platform's own `Caching:CacheEnabled=false` is honoured
+   here too - both are for diagnosing stale reporting data, not for normal operation. The cache key is the store
+   plus the query's *dates*, so two reads differing only in time of day share one entry.
 
 ## Reading analytics data
 
@@ -110,7 +113,9 @@ consumers build their own fields on top of it.
 * GA4 processes events for up to **24-48 hours** before `runReport` can see them. "No rows" right after tagging is
   the expected state, not a fault.
 * Reports are **aggregates**: the finest time dimension is `dateHour`, so every timestamp is an hour-bucket start,
-  never an event time.
+  never an event time. GA4 reports those buckets in the **property's** reporting timezone; the module converts them
+  to UTC using the zone GA returns with each response, so `OccurredAt` is a real UTC instant. The `from`/`to` bounds
+  of a query are still sent as UTC dates, so a range *edge* can differ by up to a day from the property's calendar.
 * Coverage is a **sample**, not a record — ad blockers and consent mode mean GA sees a subset of real activity.
 * GA4 suppresses rows for small cohorts when **Google Signals** is enabled, which is exactly the shape of a
   single-customer query. A property used for per-customer reporting typically needs Signals off.

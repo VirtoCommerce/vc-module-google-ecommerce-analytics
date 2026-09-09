@@ -65,8 +65,7 @@ public class AnalyticsSettingsResolverTests
         Assert.Equal("global-property", settings.PropertyId);
     }
 
-    // Clearing a store-level override in the admin UI writes "", not nothing. Taking that as an override made
-    // clearing it DISABLE reporting instead of restoring the global property.
+    // The admin UI writes "" for a cleared override, not nothing.
     [Fact]
     public async Task ResolveAsync_ClearedStoreValue_FallsBackToGlobal()
     {

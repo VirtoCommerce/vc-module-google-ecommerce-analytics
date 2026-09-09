@@ -58,8 +58,7 @@ public class AnalyticsDiagnosticsServiceTests
         Assert.Contains("session_kind", GetCheck(result, Stages.CustomDimensions).Message);
         Assert.Contains("searchTerms", GetCheck(result, Stages.ReportCompatibility).Message);
 
-        // A happy path sees every event the request asks about, so nothing is "not seen" here — the two
-        // Requested*NotSeen tests own that case.
+        // A happy path sees every requested event; the two Requested*NotSeen tests own the other case.
         var realtime = GetCheck(result, Stages.Realtime);
         Assert.Contains("search=5", realtime.Message);
         Assert.Contains("view_item=1", realtime.Message);
@@ -410,8 +409,7 @@ public class AnalyticsDiagnosticsServiceTests
         Assert.Equal(Statuses.Passed, GetCheck(result, Stages.ProcessedData).Status);
     }
 
-    // Asserted as behaviour, not as a constructor signature: caching inside the report client would leave a
-    // signature check green while diagnostics reported a stale verdict, which is the failure that matters.
+    // Behaviour, not a constructor signature: caching inside the report client would leave that check green.
     [Fact]
     public async Task RunAsync_CalledTwiceWithTheSameArguments_ReadsGoogleEachTime()
     {
@@ -443,8 +441,7 @@ public class AnalyticsDiagnosticsServiceTests
         return apiAccess;
     }
 
-    // A green row plus a sentence is not an answer: a UI colours by status, so an event the operator asked
-    // about and is not seeing has to move the status.
+    // A green row plus a sentence is not an answer: a UI colours by status.
     [Fact]
     public async Task Realtime_RequestedEventNotSeen_WarnsAndNamesIt()
     {
@@ -457,7 +454,7 @@ public class AnalyticsDiagnosticsServiceTests
         var realtime = GetCheck(result, Stages.Realtime);
         Assert.Equal(Statuses.Warning, realtime.Status);
         Assert.Contains("view_item", realtime.Message);
-        // The stage still reports what it DID see, and the run continues.
+        // The stage still reports what it DID see.
         Assert.Contains("search=2", realtime.Message);
         Assert.Equal(Statuses.Passed, GetCheck(result, Stages.ProcessedData).Status);
     }

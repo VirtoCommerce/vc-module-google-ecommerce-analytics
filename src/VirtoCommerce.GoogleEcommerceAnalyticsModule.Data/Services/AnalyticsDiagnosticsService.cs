@@ -276,8 +276,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         var userDimensionNames = GetUserDimensionNames(request);
 
-        // The rejection names WHICH dimension GA4 refused, which is the whole answer this stage exists to give.
-        // Kept across the retry so it is still reported when the retry succeeds, and when it fails too.
+        // The rejection names WHICH dimension GA4 refused; kept so the retry cannot swallow it.
         RpcException dimensionFailure = null;
 
         try
@@ -509,8 +508,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             .ToList();
     }
 
-    // An operator who asked "is view_item being collected?" and is not seeing it has their answer in the status,
-    // not in a sentence appended to a green row.
+    // A UI colours by status, not by the prose after it.
     protected virtual string GetDataStatus(IList<string> missingNames)
     {
         return missingNames.Count > 0 ? Statuses.Warning : Statuses.Passed;

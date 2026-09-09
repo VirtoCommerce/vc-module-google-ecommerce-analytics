@@ -43,7 +43,7 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
     protected virtual async Task<T> GetSettingAsync<T>(ICollection<ObjectSettingEntry> storeSettings, SettingDescriptor descriptor)
     {
         // Not just null: the admin UI writes "" for a cleared ShortText, and taking that as an override would
-        // make clearing a store-level value disable reporting instead of restoring the global one.
+        // disable reporting rather than restore the global value.
         var hasStoreValue = storeSettings?.Any(x =>
             x.Name.EqualsIgnoreCase(descriptor.Name) &&
             x.Value is not null and not "") == true;
@@ -59,7 +59,7 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
         }
         catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
         {
-            // A store value of the wrong shape is a misconfiguration, not a reason to fail the read.
+            // A misconfigured value is not a reason to fail the read.
             _logger.LogWarning(ex, "Store setting {Setting} is not a valid {Type}; falling back to the global value",
                 descriptor.Name, typeof(T).Name);
 

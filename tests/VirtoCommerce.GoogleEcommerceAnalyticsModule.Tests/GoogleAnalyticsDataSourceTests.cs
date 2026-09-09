@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Google.Analytics.Data.V1Beta;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
@@ -318,8 +319,7 @@ public class GoogleAnalyticsDataSourceTests
         Assert.Null(Assert.Single(result.Events).EventName);
     }
 
-    // GA4 reports dateHour in the PROPERTY's timezone and ships that zone with the response. Stamping the
-    // bucket UTC instead put every date on these screens out by the property's offset, silently.
+    // GA4 reports dateHour in the PROPERTY's timezone and ships that zone with the response.
     [Fact]
     public async Task GetRowsAsync_PropertyTimeZone_ConvertsTheHourBucketToUtc()
     {
@@ -344,8 +344,7 @@ public class GoogleAnalyticsDataSourceTests
         Assert.Equal(new DateTime(2026, 8, 25, 10, 0, 0, DateTimeKind.Utc), Assert.Single(result.Events).OccurredAt);
     }
 
-    // A filter with no values used to be dropped, which silently widened the read to every organization —
-    // the one failure mode these filters exist to prevent.
+    // Dropped rather than refused, this widens the read to every organization.
     [Fact]
     public async Task GetRowsAsync_DimensionFilterWithoutValues_Throws()
     {
@@ -398,6 +397,6 @@ public class GoogleAnalyticsDataSourceTests
             .Callback((RunReportRequest request) => _capturedRequest = request)
             .ReturnsAsync(response ?? new RunReportResponse());
 
-        return new GoogleAnalyticsDataSource(_reportClientMock.Object);
+        return new GoogleAnalyticsDataSource(_reportClientMock.Object, NullLogger<GoogleAnalyticsDataSource>.Instance);
     }
 }

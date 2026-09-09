@@ -26,7 +26,7 @@ public class AnalyticsService : IAnalyticsService
     // The probes are independent, so they run together instead of nose to tail. Capped rather than unbounded:
     // GA4 limits concurrent requests per property, and a criteria naming no events can carry MaxEventNames.
     private const int MaxProbeConcurrency = 4;
-    // The platform expresses Caching:CacheEnabled=false as a one-tick TTL on the default entry options.
+    // How the platform expresses Caching:CacheEnabled=false on the options it hands the factory.
     private static readonly TimeSpan CacheDisabled = TimeSpan.FromTicks(1);
 
     private const string SearchOperation = "events search";
@@ -118,7 +118,6 @@ public class AnalyticsService : IAnalyticsService
                 return createEmptyResult();
             }
 
-            // Diagnostics asks for the live state, so it opts out rather than reading a cached verdict.
             if (criteria.BypassCache)
             {
                 return await ReadAsync(operation, criteria, factory, createEmptyResult, settings, null);
@@ -165,12 +164,12 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    // The request carries dates, so two criteria differing only in time of day are the same Google query —
-    // while GetCacheKey() renders From/To at second precision and would miss the hit on a metered API.
+    // The request carries dates, so criteria differing only in time of day are one Google query — but
+    // GetCacheKey() renders From/To at second precision and would miss the hit on a metered API.
     protected virtual T WithNormalizedDates<T>(T criteria)
         where T : AnalyticsEventCriteriaBase
     {
-        if (criteria.From?.TimeOfDay == TimeSpan.Zero && criteria.To?.TimeOfDay == TimeSpan.Zero)
+        if (IsMidnightOrAbsent(criteria.From) && IsMidnightOrAbsent(criteria.To))
         {
             return criteria;
         }
@@ -180,6 +179,11 @@ public class AnalyticsService : IAnalyticsService
         result.To = criteria.To?.Date;
 
         return result;
+    }
+
+    private static bool IsMidnightOrAbsent(DateTime? value)
+    {
+        return value is null || value.Value.TimeOfDay == TimeSpan.Zero;
     }
 
     // A summary is a sum and a newest-occurrence per event name, and GA has no "max(dateHour)" aggregation — so
@@ -211,8 +215,7 @@ public class AnalyticsService : IAnalyticsService
                 }
                 catch (Exception ex)
                 {
-                    // The totals read already succeeded. Faulting the loop would discard every count and cache
-                    // the zeros, so a failed probe costs its own last-occurrence and nothing else.
+                    // The totals already succeeded; faulting the loop would discard every count and cache zeros.
                     LogFailure($"last occurrence of '{summary.EventName}'", criteria.StoreId, ex);
                 }
             });
@@ -248,8 +251,7 @@ public class AnalyticsService : IAnalyticsService
         return query;
     }
 
-    // Requested event names still yield zero-count summaries. A criteria naming NO names has nothing to shape
-    // them from, so that one does come back empty.
+    // Requested names still yield zero-count summaries; a criteria naming none has nothing to shape them from.
     protected virtual IList<AnalyticsEventSummary> CreateEmptySummaries(AnalyticsEventSummaryCriteria criteria)
     {
         return CreateSummaries(criteria, []);
@@ -294,9 +296,8 @@ public class AnalyticsService : IAnalyticsService
         return TimeSpan.FromMinutes(settings.CacheTtlMinutes);
     }
 
-    // Mirrors SalesRep's StatisticsCache.Apply: the platform hands the factory its DEFAULT entry options, so a
-    // TTL written straight over them makes Caching:CacheEnabled=false inert and leaves the platform's sliding
-    // default (15 min) to evict before the TTL this module documents as a setting.
+    // The factory is handed the platform's DEFAULT options: a TTL written straight over them makes
+    // CacheEnabled=false inert and leaves the 15-min sliding default to evict first.
     protected virtual void ApplyCacheTtl(MemoryCacheEntryOptions options, TimeSpan ttl)
     {
         if (options.AbsoluteExpirationRelativeToNow == CacheDisabled)

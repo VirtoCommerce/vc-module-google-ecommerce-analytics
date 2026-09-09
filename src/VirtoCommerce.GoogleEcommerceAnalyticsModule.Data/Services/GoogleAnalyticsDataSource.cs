@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Google.Analytics.Data.V1Beta;
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
@@ -27,10 +28,14 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     };
 
     private readonly IGoogleAnalyticsReportClient _reportClient;
+    private readonly ILogger<GoogleAnalyticsDataSource> _logger;
 
-    public GoogleAnalyticsDataSource(IGoogleAnalyticsReportClient reportClient)
+    public GoogleAnalyticsDataSource(
+        IGoogleAnalyticsReportClient reportClient,
+        ILogger<GoogleAnalyticsDataSource> logger)
     {
         _reportClient = reportClient;
+        _logger = logger;
     }
 
     public virtual Task<AnalyticsEventSearchResult> GetRowsAsync(AnalyticsDataQuery query)
@@ -153,9 +158,8 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
 
         foreach (var filter in (query.DimensionFilters ?? []).Where(x => !string.IsNullOrEmpty(x.DimensionName)))
         {
-            // Dropping a valueless filter turns a scoping constraint into no constraint at all — and these carry
-            // the consumer's data isolation, so the read would silently widen to every organization. An empty
-            // list is the caller's bug, and this is the last place that can still refuse it.
+            // Dropped, this widens the read instead of narrowing it — and these filters carry the consumer's
+            // data isolation. Last place that can still refuse it.
             if (filter.Values.IsNullOrEmpty())
             {
                 throw new ArgumentException(
@@ -246,9 +250,8 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
         return ModuleConstants.SortBy.Count.EqualsIgnoreCase(query.SortBy);
     }
 
-    // GA4 reports dateHour in the PROPERTY's reporting timezone — the proto documents ResponseMetaData.time_zone
-    // as being there "to interpret time-based dimensions like hour and minute" — and it ships that zone with every
-    // response. Assuming UTC instead put every bucket out by the property's offset, silently.
+    // GA4 reports dateHour in the PROPERTY's timezone and ships that zone with every response; assuming UTC put
+    // every bucket out by the property's offset.
     protected virtual TimeZoneInfo ResolvePropertyTimeZone(string timeZoneId)
     {
         if (string.IsNullOrEmpty(timeZoneId))
@@ -256,9 +259,17 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
             return TimeZoneInfo.Utc;
         }
 
-        // GA gives an IANA id, which .NET resolves on every platform since ICU. An id it cannot resolve leaves
-        // the buckets as they were read rather than failing the whole report.
-        return TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var timeZone) ? timeZone : TimeZoneInfo.Utc;
+        if (TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var timeZone))
+        {
+            return timeZone;
+        }
+
+        // Falling back leaves every bucket out by the property's offset, so it cannot pass unrecorded.
+        _logger.LogWarning(
+            "Google Analytics reported time zone '{TimeZone}', which could not be resolved; hour buckets are left " +
+            "uncorrected and may be wrong by the property's offset", timeZoneId);
+
+        return TimeZoneInfo.Utc;
     }
 
     private static DateTime? ParseDateHour(string value, TimeZoneInfo timeZone)
@@ -270,8 +281,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
 
         var local = DateTime.SpecifyKind(result, DateTimeKind.Unspecified);
 
-        // The hour a spring-forward skips has no UTC instant; GA cannot bucket into it, but a mis-set property
-        // could, and converting one throws.
+        // The hour a spring-forward skips has no UTC instant, and converting one throws.
         return timeZone.IsInvalidTime(local)
             ? DateTime.SpecifyKind(local, DateTimeKind.Utc)
             : TimeZoneInfo.ConvertTimeToUtc(local, timeZone);

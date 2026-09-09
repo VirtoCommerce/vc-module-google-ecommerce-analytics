@@ -6,7 +6,7 @@ public class AnalyticsDataApiSettings
 {
     public string PropertyId { get; set; }
 
-    // The descriptor's default, so an instance built without one caches rather than reading 0 as "disabled".
+    // The descriptor's default: 0 now means "disabled", so an unset instance must not land on it.
     public int CacheTtlMinutes { get; set; } = DataApiSettings.DefaultCacheTtlMinutes;
 
     public bool IsConfigured => !string.IsNullOrEmpty(PropertyId);

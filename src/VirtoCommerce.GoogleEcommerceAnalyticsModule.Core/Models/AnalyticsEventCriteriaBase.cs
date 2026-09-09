@@ -16,7 +16,6 @@ public abstract class AnalyticsEventCriteriaBase : SearchCriteriaBase
 
     public DateTime? To { get; set; }
 
-    // Reads Google directly instead of the response cache. For a caller whose whole purpose is the live state
-    // (a diagnostics probe); a feature read must not set it, since the cache is what protects the API quota.
+    // For a diagnostics probe: a feature read must not set it, since the cache is what protects the quota.
     public bool BypassCache { get; set; }
 }

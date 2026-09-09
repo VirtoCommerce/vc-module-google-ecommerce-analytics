@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
@@ -29,7 +30,7 @@ public class AnalyticsServiceTests
 
     public AnalyticsServiceTests()
     {
-        _googleDataSourceMock = new Mock<GoogleAnalyticsDataSource>(_reportClientMock.Object);
+        _googleDataSourceMock = new Mock<GoogleAnalyticsDataSource>(_reportClientMock.Object, NullLogger<GoogleAnalyticsDataSource>.Instance);
     }
 
     [Theory]
@@ -218,8 +219,7 @@ public class AnalyticsServiceTests
         Assert.Null(signUp.LastOccurredAt);
     }
 
-    // The totals read has already succeeded by the time the probes run. Faulting the whole loop would throw
-    // those counts away and cache the zeros, so one bad probe would report "no activity" for every event.
+    // Faulting the whole loop would throw away counts that already succeeded, and cache the zeros.
     [Fact]
     public async Task GetEventSummariesAsync_OneProbeFails_KeepsTheTotalsAndOnlyLosesThatLastOccurrence()
     {
@@ -345,8 +345,7 @@ public class AnalyticsServiceTests
         return CreateService(new AnalyticsDataApiSettings { PropertyId = "123456" }, failureCacheTtl, cacheEnabled);
     }
 
-    // The request only carries dates, so two criteria differing by time of day are the SAME Google query —
-    // and the key is what decides whether the metered API is called twice for it.
+    // The request only carries dates, so these are one Google query — and the key decides whether it runs twice.
     [Fact]
     public async Task SearchEventsAsync_CriteriaDifferingOnlyInTimeOfDay_UsesCache()
     {
@@ -382,7 +381,7 @@ public class AnalyticsServiceTests
         Assert.Equal(To.Date.AddHours(9).AddMinutes(17), criteria.To);
     }
 
-    // Diagnostics answers "is it working right now", so it must not be served a cached verdict.
+    // Diagnostics must not be served a cached verdict.
     [Fact]
     public async Task SearchEventsAsync_BypassCache_ReadsEveryTime()
     {
@@ -400,7 +399,7 @@ public class AnalyticsServiceTests
         _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
     }
 
-    // The platform expresses Caching:CacheEnabled=false as a one-tick TTL on the options it hands the factory.
+    // The platform expresses that switch as a one-tick TTL on the options it hands the factory.
     [Fact]
     public async Task SearchEventsAsync_PlatformCachingDisabled_ReadsEveryTime()
     {
@@ -460,7 +459,7 @@ public class AnalyticsServiceTests
         };
     }
 
-    // Count mode collapses to one row per event name and carries no date; the probes are what fill it in.
+    // Count mode carries no date; the probes are what fill it in.
     private static AnalyticsEventSearchResult CreateCountModeResult(params (string EventName, int Count)[] events)
     {
         return new AnalyticsEventSearchResult
