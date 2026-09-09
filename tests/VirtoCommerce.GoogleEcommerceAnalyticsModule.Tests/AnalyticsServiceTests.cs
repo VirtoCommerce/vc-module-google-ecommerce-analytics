@@ -218,6 +218,39 @@ public class AnalyticsServiceTests
         Assert.Null(signUp.LastOccurredAt);
     }
 
+    // The totals read has already succeeded by the time the probes run. Faulting the whole loop would throw
+    // those counts away and cache the zeros, so one bad probe would report "no activity" for every event.
+    [Fact]
+    public async Task GetEventSummariesAsync_OneProbeFails_KeepsTheTotalsAndOnlyLosesThatLastOccurrence()
+    {
+        var totals = CreateCountModeResult(("search", 3), ("login", 5));
+
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.SortBy == ModuleConstants.SortBy.Count)))
+            .ReturnsAsync(totals);
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q =>
+                q.SortBy != ModuleConstants.SortBy.Count && q.EventNames.Contains(ModuleConstants.EventNames.Login))))
+            .ThrowsAsync(new InvalidOperationException("GA responded 429"));
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q =>
+                q.SortBy != ModuleConstants.SortBy.Count && q.EventNames.Contains(ModuleConstants.EventNames.Search))))
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+
+        var service = CreateGoogleConfiguredService();
+
+        var summaries = await service.GetEventSummariesAsync(
+            CreateSummaryCriteria(ModuleConstants.EventNames.Search, ModuleConstants.EventNames.Login));
+
+        var search = summaries.First(x => x.EventName == ModuleConstants.EventNames.Search);
+        Assert.Equal(3, search.TotalCount);
+        Assert.Equal(To, search.LastOccurredAt);
+
+        var login = summaries.First(x => x.EventName == ModuleConstants.EventNames.Login);
+        Assert.Equal(5, login.TotalCount);
+        Assert.Null(login.LastOccurredAt);
+    }
+
     [Fact]
     public async Task GetEventSummariesAsync_ReadsNarrowly_NeverTheWholeHourlySeries()
     {
@@ -289,7 +322,7 @@ public class AnalyticsServiceTests
         _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
     }
 
-    private AnalyticsService CreateService(AnalyticsDataApiSettings settings = null, TimeSpan? failureCacheTtl = null)
+    private AnalyticsService CreateService(AnalyticsDataApiSettings settings = null, TimeSpan? failureCacheTtl = null, bool cacheEnabled = true)
     {
         if (settings != null)
         {
@@ -299,7 +332,7 @@ public class AnalyticsServiceTests
         }
 
         var memoryCache = new MemoryCache(Options.Create(new MemoryCacheOptions()));
-        var platformMemoryCache = new PlatformMemoryCache(memoryCache, Options.Create(new CachingOptions()), new Mock<ILogger<PlatformMemoryCache>>().Object);
+        var platformMemoryCache = new PlatformMemoryCache(memoryCache, Options.Create(new CachingOptions { CacheEnabled = cacheEnabled }), new Mock<ILogger<PlatformMemoryCache>>().Object);
         var logger = new Mock<ILogger<AnalyticsService>>().Object;
 
         return failureCacheTtl == null
@@ -307,9 +340,93 @@ public class AnalyticsServiceTests
             : new ShortFailureTtlAnalyticsService(failureCacheTtl.Value, _settingsResolverMock.Object, platformMemoryCache, _googleDataSourceMock.Object, logger);
     }
 
-    private AnalyticsService CreateGoogleConfiguredService(TimeSpan? failureCacheTtl = null)
+    private AnalyticsService CreateGoogleConfiguredService(TimeSpan? failureCacheTtl = null, bool cacheEnabled = true)
     {
-        return CreateService(new AnalyticsDataApiSettings { PropertyId = "123456" }, failureCacheTtl);
+        return CreateService(new AnalyticsDataApiSettings { PropertyId = "123456" }, failureCacheTtl, cacheEnabled);
+    }
+
+    // The request only carries dates, so two criteria differing by time of day are the SAME Google query —
+    // and the key is what decides whether the metered API is called twice for it.
+    [Fact]
+    public async Task SearchEventsAsync_CriteriaDifferingOnlyInTimeOfDay_UsesCache()
+    {
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        var service = CreateGoogleConfiguredService();
+
+        var morning = CreateSearchCriteria();
+        morning.To = To.Date.AddHours(9).AddMinutes(17);
+        var evening = CreateSearchCriteria();
+        evening.To = To.Date.AddHours(21).AddSeconds(4);
+
+        await service.SearchEventsAsync(morning);
+        await service.SearchEventsAsync(evening);
+
+        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchEventsAsync_NormalizingDates_DoesNotMutateTheCallersCriteria()
+    {
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        var service = CreateGoogleConfiguredService();
+
+        var criteria = CreateSearchCriteria();
+        criteria.To = To.Date.AddHours(9).AddMinutes(17);
+
+        await service.SearchEventsAsync(criteria);
+
+        Assert.Equal(To.Date.AddHours(9).AddMinutes(17), criteria.To);
+    }
+
+    // Diagnostics answers "is it working right now", so it must not be served a cached verdict.
+    [Fact]
+    public async Task SearchEventsAsync_BypassCache_ReadsEveryTime()
+    {
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        var service = CreateGoogleConfiguredService();
+
+        var criteria = CreateSearchCriteria();
+        criteria.BypassCache = true;
+
+        await service.SearchEventsAsync(criteria);
+        await service.SearchEventsAsync(criteria);
+
+        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+    }
+
+    // The platform expresses Caching:CacheEnabled=false as a one-tick TTL on the options it hands the factory.
+    [Fact]
+    public async Task SearchEventsAsync_PlatformCachingDisabled_ReadsEveryTime()
+    {
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        var service = CreateGoogleConfiguredService(cacheEnabled: false);
+
+        await service.SearchEventsAsync(CreateSearchCriteria());
+        await service.SearchEventsAsync(CreateSearchCriteria());
+
+        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task SearchEventsAsync_CacheTtlZero_ReadsEveryTime()
+    {
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        var service = CreateService(new AnalyticsDataApiSettings { PropertyId = "123456", CacheTtlMinutes = 0 });
+
+        await service.SearchEventsAsync(CreateSearchCriteria());
+        await service.SearchEventsAsync(CreateSearchCriteria());
+
+        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
     }
 
     private static AnalyticsEventSearchCriteria CreateSearchCriteria(string organizationId = null)
@@ -340,6 +457,18 @@ public class AnalyticsServiceTests
             StoreId = StoreId,
             EventNames = eventNames.ToList(),
             To = To,
+        };
+    }
+
+    // Count mode collapses to one row per event name and carries no date; the probes are what fill it in.
+    private static AnalyticsEventSearchResult CreateCountModeResult(params (string EventName, int Count)[] events)
+    {
+        return new AnalyticsEventSearchResult
+        {
+            TotalCount = events.Length,
+            Events = events
+                .Select(x => new AnalyticsEvent { EventName = x.EventName, Count = x.Count })
+                .ToList(),
         };
     }
 

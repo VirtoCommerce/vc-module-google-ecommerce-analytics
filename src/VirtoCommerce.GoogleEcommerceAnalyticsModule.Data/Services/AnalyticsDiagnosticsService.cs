@@ -276,10 +276,13 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         var userDimensionNames = GetUserDimensionNames(request);
 
+        // The rejection names WHICH dimension GA4 refused, which is the whole answer this stage exists to give.
+        // Kept across the retry so it is still reported when the retry succeeds, and when it fails too.
+        RpcException dimensionFailure = null;
+
         try
         {
             RunRealtimeReportResponse response;
-            var usedFallback = false;
 
             try
             {
@@ -288,29 +291,35 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             }
             catch (RpcException ex) when (userDimensionNames.Count > 0 && ex.StatusCode == StatusCode.InvalidArgument)
             {
-                usedFallback = true;
+                dimensionFailure = ex;
                 response = await _reportClient.RunRealtimeReportAsync(
                     BuildRealtimeRequest(settings.PropertyId, []));
             }
 
-            var fallbackNote = usedFallback
+            var fallbackNote = dimensionFailure != null
                 ? " Realtime does not support the custom dimensions on this property — checked event stream only."
                 : string.Empty;
+            var detail = dimensionFailure != null ? DescribeError(dimensionFailure) : null;
             var eventCounts = AggregateEventCounts(response.DimensionHeaders, response.Rows);
+            var missingNames = GetMissingRequestedEvents(request, eventCounts);
 
             if (eventCounts.Count == 0)
             {
-                AddCheck(checks, Stages.Realtime, Statuses.Warning, "No events in the last 30 minutes." + fallbackNote);
+                AddCheck(checks, Stages.Realtime, Statuses.Warning, "No events in the last 30 minutes." + fallbackNote, detail);
             }
             else
             {
-                AddCheck(checks, Stages.Realtime, Statuses.Passed,
-                    $"Events in the last 30 minutes: {FormatEventCounts(eventCounts)}.{fallbackNote}{DescribeMissingRequestedEvents(request, eventCounts)}");
+                AddCheck(checks, Stages.Realtime, GetDataStatus(missingNames),
+                    $"Events in the last 30 minutes: {FormatEventCounts(eventCounts)}.{fallbackNote}{DescribeMissingRequestedEvents(missingNames)}",
+                    detail);
             }
         }
         catch (Exception ex)
         {
-            AddCheck(checks, Stages.Realtime, Statuses.Failed, "Realtime report failed.", DescribeError(ex));
+            AddCheck(checks, Stages.Realtime, Statuses.Failed, "Realtime report failed.",
+                dimensionFailure == null
+                    ? DescribeError(ex)
+                    : $"{DescribeError(ex)} (the first attempt, with the custom dimensions, failed with: {DescribeError(dimensionFailure)})");
         }
     }
 
@@ -328,8 +337,10 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             }
             else
             {
-                AddCheck(checks, Stages.ProcessedData, Statuses.Passed,
-                    $"Processed events over the last 7 days: {FormatEventCounts(eventCounts)}.{DescribeMissingRequestedEvents(request, eventCounts)}");
+                var missingNames = GetMissingRequestedEvents(request, eventCounts);
+
+                AddCheck(checks, Stages.ProcessedData, GetDataStatus(missingNames),
+                    $"Processed events over the last 7 days: {FormatEventCounts(eventCounts)}.{DescribeMissingRequestedEvents(missingNames)}");
             }
         }
         catch (Exception ex)
@@ -490,13 +501,23 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         return string.Join(", ", eventCounts.Select(x => FormattableString.Invariant($"{x.Key}={x.Value}")));
     }
 
-    protected virtual string DescribeMissingRequestedEvents(AnalyticsDiagnosticsRequest request, IList<KeyValuePair<string, long>> eventCounts)
+    protected virtual IList<string> GetMissingRequestedEvents(AnalyticsDiagnosticsRequest request, IList<KeyValuePair<string, long>> eventCounts)
     {
-        var missingNames = (request.EventNames ?? [])
-            .Where(x => !string.IsNullOrEmpty(x) && eventCounts.All(count => count.Key != x))
-            .Distinct()
+        return (request.EventNames ?? [])
+            .Where(x => !string.IsNullOrEmpty(x) && !eventCounts.Any(count => count.Key.EqualsIgnoreCase(x)))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
 
+    // An operator who asked "is view_item being collected?" and is not seeing it has their answer in the status,
+    // not in a sentence appended to a green row.
+    protected virtual string GetDataStatus(IList<string> missingNames)
+    {
+        return missingNames.Count > 0 ? Statuses.Warning : Statuses.Passed;
+    }
+
+    protected virtual string DescribeMissingRequestedEvents(IList<string> missingNames)
+    {
         return missingNames.Count > 0 ? $" Requested events not seen: {string.Join(", ", missingNames)}." : string.Empty;
     }
 

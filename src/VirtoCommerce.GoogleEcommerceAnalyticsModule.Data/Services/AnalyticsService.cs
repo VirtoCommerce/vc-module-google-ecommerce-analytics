@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
@@ -25,6 +26,9 @@ public class AnalyticsService : IAnalyticsService
     // The probes are independent, so they run together instead of nose to tail. Capped rather than unbounded:
     // GA4 limits concurrent requests per property, and a criteria naming no events can carry MaxEventNames.
     private const int MaxProbeConcurrency = 4;
+    // The platform expresses Caching:CacheEnabled=false as a one-tick TTL on the default entry options.
+    private static readonly TimeSpan CacheDisabled = TimeSpan.FromTicks(1);
+
     private const string SearchOperation = "events search";
     private const string SummariesOperation = "event summaries";
 
@@ -65,6 +69,8 @@ public class AnalyticsService : IAnalyticsService
     {
         ArgumentNullException.ThrowIfNull(criteria);
 
+        criteria = WithNormalizedDates(criteria);
+
         var result = await GetOrCreateAsync(
             SearchOperation,
             criteria,
@@ -86,6 +92,8 @@ public class AnalyticsService : IAnalyticsService
     public virtual async Task<IList<AnalyticsEventSummary>> GetEventSummariesAsync(AnalyticsEventSummaryCriteria criteria)
     {
         ArgumentNullException.ThrowIfNull(criteria);
+
+        criteria = WithNormalizedDates(criteria);
 
         var result = await GetOrCreateAsync(
             SummariesOperation,
@@ -110,22 +118,19 @@ public class AnalyticsService : IAnalyticsService
                 return createEmptyResult();
             }
 
+            // Diagnostics asks for the live state, so it opts out rather than reading a cached verdict.
+            if (criteria.BypassCache)
+            {
+                return await ReadAsync(operation, criteria, factory, createEmptyResult, settings, null);
+            }
+
             var cacheKey = CacheKey.With(GetType(), operation, criteria.GetCacheKey());
 
-            return await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>
+            return await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, cacheOptions =>
             {
-                cacheOptions.AbsoluteExpirationRelativeToNow = GetCacheTtl(settings);
+                ApplyCacheTtl(cacheOptions, GetCacheTtl(settings));
 
-                try
-                {
-                    return await factory(settings);
-                }
-                catch (Exception ex)
-                {
-                    LogFailure(operation, criteria.StoreId, ex);
-                    cacheOptions.AbsoluteExpirationRelativeToNow = FailureCacheTtl;
-                    return createEmptyResult();
-                }
+                return ReadAsync(operation, criteria, factory, createEmptyResult, settings, cacheOptions);
             });
         }
         catch (Exception ex)
@@ -133,6 +138,48 @@ public class AnalyticsService : IAnalyticsService
             LogFailure(operation, criteria.StoreId, ex);
             return createEmptyResult();
         }
+    }
+
+    private async Task<T> ReadAsync<T>(
+        string operation,
+        AnalyticsEventCriteriaBase criteria,
+        Func<AnalyticsDataApiSettings, Task<T>> factory,
+        Func<T> createEmptyResult,
+        AnalyticsDataApiSettings settings,
+        MemoryCacheEntryOptions cacheOptions)
+    {
+        try
+        {
+            return await factory(settings);
+        }
+        catch (Exception ex)
+        {
+            LogFailure(operation, criteria.StoreId, ex);
+
+            if (cacheOptions != null)
+            {
+                ApplyCacheTtl(cacheOptions, FailureCacheTtl);
+            }
+
+            return createEmptyResult();
+        }
+    }
+
+    // The request carries dates, so two criteria differing only in time of day are the same Google query —
+    // while GetCacheKey() renders From/To at second precision and would miss the hit on a metered API.
+    protected virtual T WithNormalizedDates<T>(T criteria)
+        where T : AnalyticsEventCriteriaBase
+    {
+        if (criteria.From?.TimeOfDay == TimeSpan.Zero && criteria.To?.TimeOfDay == TimeSpan.Zero)
+        {
+            return criteria;
+        }
+
+        var result = criteria.CloneTyped();
+        result.From = criteria.From?.Date;
+        result.To = criteria.To?.Date;
+
+        return result;
     }
 
     // A summary is a sum and a newest-occurrence per event name, and GA has no "max(dateHour)" aggregation — so
@@ -158,7 +205,16 @@ public class AnalyticsService : IAnalyticsService
             new ParallelOptions { MaxDegreeOfParallelism = MaxProbeConcurrency },
             async (summary, _) =>
             {
-                summary.LastOccurredAt = await GetLastOccurredAtAsync(settings, criteria, summary.EventName);
+                try
+                {
+                    summary.LastOccurredAt = await GetLastOccurredAtAsync(settings, criteria, summary.EventName);
+                }
+                catch (Exception ex)
+                {
+                    // The totals read already succeeded. Faulting the loop would discard every count and cache
+                    // the zeros, so a failed probe costs its own last-occurrence and nothing else.
+                    LogFailure($"last occurrence of '{summary.EventName}'", criteria.StoreId, ex);
+                }
             });
 
         return summaries;
@@ -192,7 +248,8 @@ public class AnalyticsService : IAnalyticsService
         return query;
     }
 
-    // Not an empty list: requested event names still yield zero-count summaries.
+    // Requested event names still yield zero-count summaries. A criteria naming NO names has nothing to shape
+    // them from, so that one does come back empty.
     protected virtual IList<AnalyticsEventSummary> CreateEmptySummaries(AnalyticsEventSummaryCriteria criteria)
     {
         return CreateSummaries(criteria, []);
@@ -234,7 +291,21 @@ public class AnalyticsService : IAnalyticsService
 
     protected virtual TimeSpan GetCacheTtl(AnalyticsDataApiSettings settings)
     {
-        return TimeSpan.FromMinutes(Math.Max(1, settings.CacheTtlMinutes));
+        return TimeSpan.FromMinutes(settings.CacheTtlMinutes);
+    }
+
+    // Mirrors SalesRep's StatisticsCache.Apply: the platform hands the factory its DEFAULT entry options, so a
+    // TTL written straight over them makes Caching:CacheEnabled=false inert and leaves the platform's sliding
+    // default (15 min) to evict before the TTL this module documents as a setting.
+    protected virtual void ApplyCacheTtl(MemoryCacheEntryOptions options, TimeSpan ttl)
+    {
+        if (options.AbsoluteExpirationRelativeToNow == CacheDisabled)
+        {
+            return;
+        }
+
+        options.SlidingExpiration = null;
+        options.AbsoluteExpirationRelativeToNow = ttl > TimeSpan.Zero ? ttl : CacheDisabled;
     }
 
     private void LogFailure(string operation, string storeId, Exception exception)

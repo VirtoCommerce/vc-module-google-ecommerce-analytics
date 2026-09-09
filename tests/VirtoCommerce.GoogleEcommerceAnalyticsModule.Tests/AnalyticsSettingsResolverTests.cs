@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
@@ -64,6 +65,21 @@ public class AnalyticsSettingsResolverTests
         Assert.Equal("global-property", settings.PropertyId);
     }
 
+    // Clearing a store-level override in the admin UI writes "", not nothing. Taking that as an override made
+    // clearing it DISABLE reporting instead of restoring the global property.
+    [Fact]
+    public async Task ResolveAsync_ClearedStoreValue_FallsBackToGlobal()
+    {
+        SetupGlobalSetting(ModuleConstants.Settings.DataApi.PropertyId.Name, "global-property");
+        SetupStore(CreateStore((ModuleConstants.Settings.DataApi.PropertyId.Name, "")));
+        var resolver = CreateResolver();
+
+        var settings = await resolver.ResolveAsync(StoreId);
+
+        Assert.Equal("global-property", settings.PropertyId);
+        Assert.True(settings.IsConfigured);
+    }
+
     [Fact]
     public async Task ResolveAsync_NullStoreId_UsesGlobalSettingsWithoutLoadingStore()
     {
@@ -90,7 +106,8 @@ public class AnalyticsSettingsResolverTests
 
     private AnalyticsSettingsResolver CreateResolver()
     {
-        return new AnalyticsSettingsResolver(_storeServiceMock.Object, _settingsManagerMock.Object);
+        return new AnalyticsSettingsResolver(_storeServiceMock.Object, _settingsManagerMock.Object,
+            NullLogger<AnalyticsSettingsResolver>.Instance);
     }
 
     private void SetupStore(Store store)

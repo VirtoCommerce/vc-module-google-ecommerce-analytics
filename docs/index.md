@@ -149,7 +149,12 @@ Runs a staged check of the reporting setup and returns one row per stage — `co
 `apiAccess`, `customDimensions`, `reportCompatibility`, `realtime`, `processedData` — each with a `status` of
 `Passed`, `Warning`, `Failed` or `Skipped`, a message naming the fix, and an optional `detail`. A failure in one of
 the first three stages marks the rest `Skipped`, so the response shape never varies. Diagnostics bypasses the
-response cache and reads Google directly, and never reports a credential's contents — only its kind.
+response cache and reads Google directly.
+
+Key material never reaches the response: the `credentials` stage reports only the *kind* of credential in use.
+`detail`, however, forwards the underlying error verbatim, and Google's own messages can name the environment
+around the credential — the path in `GOOGLE_APPLICATION_CREDENTIALS`, or the Cloud project behind a disabled
+API. The endpoint is gated on `googleanalytics:access` for that reason.
 
 The request body is optional; every field defaults, so `{}` runs a bare connectivity check:
 

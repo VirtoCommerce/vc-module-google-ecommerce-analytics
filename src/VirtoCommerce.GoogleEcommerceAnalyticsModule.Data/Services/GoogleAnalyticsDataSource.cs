@@ -151,9 +151,18 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
             expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.Dimensions.EventName, query.EventNames));
         }
 
-        foreach (var filter in (query.DimensionFilters ?? [])
-                     .Where(x => !string.IsNullOrEmpty(x.DimensionName) && !x.Values.IsNullOrEmpty()))
+        foreach (var filter in (query.DimensionFilters ?? []).Where(x => !string.IsNullOrEmpty(x.DimensionName)))
         {
+            // Dropping a valueless filter turns a scoping constraint into no constraint at all — and these carry
+            // the consumer's data isolation, so the read would silently widen to every organization. An empty
+            // list is the caller's bug, and this is the last place that can still refuse it.
+            if (filter.Values.IsNullOrEmpty())
+            {
+                throw new ArgumentException(
+                    $"Dimension filter '{filter.DimensionName}' carries no values, which would leave the read unscoped.",
+                    nameof(query));
+            }
+
             expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(MapDimensionName(filter.DimensionName), filter.Values));
         }
 
@@ -171,6 +180,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
         }
 
         var headers = response.DimensionHeaders.Select(x => x.Name).ToList();
+        var timeZone = ResolvePropertyTimeZone(response.Metadata?.TimeZone);
 
         foreach (var row in response.Rows)
         {
@@ -178,7 +188,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
 
             for (var i = 0; i < headers.Count && i < row.DimensionValues.Count; i++)
             {
-                MapDimensionValue(analyticsEvent, headers[i], row.DimensionValues[i].Value);
+                MapDimensionValue(analyticsEvent, headers[i], row.DimensionValues[i].Value, timeZone);
             }
 
             analyticsEvent.Count = row.MetricValues.Count > 0
@@ -192,7 +202,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
         return result;
     }
 
-    protected virtual void MapDimensionValue(AnalyticsEvent analyticsEvent, string dimensionName, string value)
+    protected virtual void MapDimensionValue(AnalyticsEvent analyticsEvent, string dimensionName, string value, TimeZoneInfo timeZone)
     {
         if (string.IsNullOrEmpty(value) || value == NotSetValue)
         {
@@ -205,7 +215,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
         }
         else if (dimensionName == ModuleConstants.Dimensions.DateHour)
         {
-            analyticsEvent.OccurredAt = ParseDateHour(value);
+            analyticsEvent.OccurredAt = ParseDateHour(value, timeZone);
         }
         else
         {
@@ -236,11 +246,34 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
         return ModuleConstants.SortBy.Count.EqualsIgnoreCase(query.SortBy);
     }
 
-    private static DateTime? ParseDateHour(string value)
+    // GA4 reports dateHour in the PROPERTY's reporting timezone — the proto documents ResponseMetaData.time_zone
+    // as being there "to interpret time-based dimensions like hour and minute" — and it ships that zone with every
+    // response. Assuming UTC instead put every bucket out by the property's offset, silently.
+    protected virtual TimeZoneInfo ResolvePropertyTimeZone(string timeZoneId)
     {
-        return DateTime.TryParseExact(value, DateHourFormat, CultureInfo.InvariantCulture,
-            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var result)
-            ? result
-            : null;
+        if (string.IsNullOrEmpty(timeZoneId))
+        {
+            return TimeZoneInfo.Utc;
+        }
+
+        // GA gives an IANA id, which .NET resolves on every platform since ICU. An id it cannot resolve leaves
+        // the buckets as they were read rather than failing the whole report.
+        return TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var timeZone) ? timeZone : TimeZoneInfo.Utc;
+    }
+
+    private static DateTime? ParseDateHour(string value, TimeZoneInfo timeZone)
+    {
+        if (!DateTime.TryParseExact(value, DateHourFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result))
+        {
+            return null;
+        }
+
+        var local = DateTime.SpecifyKind(result, DateTimeKind.Unspecified);
+
+        // The hour a spring-forward skips has no UTC instant; GA cannot bucket into it, but a mis-set property
+        // could, and converting one throws.
+        return timeZone.IsInvalidTime(local)
+            ? DateTime.SpecifyKind(local, DateTimeKind.Utc)
+            : TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
     }
 }

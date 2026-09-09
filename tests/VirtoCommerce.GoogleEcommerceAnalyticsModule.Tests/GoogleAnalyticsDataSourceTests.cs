@@ -318,6 +318,79 @@ public class GoogleAnalyticsDataSourceTests
         Assert.Null(Assert.Single(result.Events).EventName);
     }
 
+    // GA4 reports dateHour in the PROPERTY's timezone and ships that zone with the response. Stamping the
+    // bucket UTC instead put every date on these screens out by the property's offset, silently.
+    [Fact]
+    public async Task GetRowsAsync_PropertyTimeZone_ConvertsTheHourBucketToUtc()
+    {
+        var dataSource = CreateDataSource(CreateDateHourResponse("2026082510", "America/Los_Angeles"));
+
+        var result = await dataSource.GetRowsAsync(CreateDateHourQuery());
+
+        // 10:00 Pacific on 25 Aug 2026 is 17:00 UTC (PDT, UTC-7).
+        Assert.Equal(new DateTime(2026, 8, 25, 17, 0, 0, DateTimeKind.Utc), Assert.Single(result.Events).OccurredAt);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Not/AZone")]
+    public async Task GetRowsAsync_NoUsableTimeZone_LeavesTheBucketAsRead(string timeZoneId)
+    {
+        var dataSource = CreateDataSource(CreateDateHourResponse("2026082510", timeZoneId));
+
+        var result = await dataSource.GetRowsAsync(CreateDateHourQuery());
+
+        Assert.Equal(new DateTime(2026, 8, 25, 10, 0, 0, DateTimeKind.Utc), Assert.Single(result.Events).OccurredAt);
+    }
+
+    // A filter with no values used to be dropped, which silently widened the read to every organization —
+    // the one failure mode these filters exist to prevent.
+    [Fact]
+    public async Task GetRowsAsync_DimensionFilterWithoutValues_Throws()
+    {
+        var dataSource = CreateDataSource();
+
+        var query = CreateDateHourQuery();
+        query.DimensionFilters = new List<AnalyticsDimensionFilter>
+        {
+            new() { DimensionName = ModuleConstants.UserDimensions.OrganizationId, Values = new List<string>() },
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => dataSource.GetRowsAsync(query));
+        Assert.Contains(ModuleConstants.UserDimensions.OrganizationId, exception.Message);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
+    }
+
+    private static AnalyticsDataQuery CreateDateHourQuery()
+    {
+        return new AnalyticsDataQuery
+        {
+            PropertyId = "123456",
+            EventNames = new List<string> { ModuleConstants.EventNames.Search },
+            Take = 10,
+        };
+    }
+
+    private static RunReportResponse CreateDateHourResponse(string dateHour, string timeZoneId)
+    {
+        var response = new RunReportResponse { RowCount = 1 };
+
+        if (timeZoneId != null)
+        {
+            response.Metadata = new ResponseMetaData { TimeZone = timeZoneId };
+        }
+
+        response.DimensionHeaders.Add(new DimensionHeader { Name = "dateHour" });
+
+        var row = new Row();
+        row.DimensionValues.Add(new DimensionValue { Value = dateHour });
+        row.MetricValues.Add(new MetricValue { Value = "1" });
+        response.Rows.Add(row);
+
+        return response;
+    }
+
     private GoogleAnalyticsDataSource CreateDataSource(RunReportResponse response = null)
     {
         _reportClientMock

@@ -58,9 +58,12 @@ public class AnalyticsDiagnosticsServiceTests
         Assert.Contains("session_kind", GetCheck(result, Stages.CustomDimensions).Message);
         Assert.Contains("searchTerms", GetCheck(result, Stages.ReportCompatibility).Message);
 
+        // A happy path sees every event the request asks about, so nothing is "not seen" here — the two
+        // Requested*NotSeen tests own that case.
         var realtime = GetCheck(result, Stages.Realtime);
         Assert.Contains("search=5", realtime.Message);
-        Assert.Contains("Requested events not seen: view_item", realtime.Message);
+        Assert.Contains("view_item=1", realtime.Message);
+        Assert.DoesNotContain("Requested events not seen", realtime.Message);
         Assert.DoesNotContain("checked event stream only", realtime.Message);
 
         var processedData = GetCheck(result, Stages.ProcessedData);
@@ -407,18 +410,20 @@ public class AnalyticsDiagnosticsServiceTests
         Assert.Equal(Statuses.Passed, GetCheck(result, Stages.ProcessedData).Status);
     }
 
+    // Asserted as behaviour, not as a constructor signature: caching inside the report client would leave a
+    // signature check green while diagnostics reported a stale verdict, which is the failure that matters.
     [Fact]
-    public void Constructor_BypassesAnalyticsCacheAndService()
+    public async Task RunAsync_CalledTwiceWithTheSameArguments_ReadsGoogleEachTime()
     {
-        var parameterTypes = typeof(AnalyticsDiagnosticsService)
-            .GetConstructors()
-            .SelectMany(x => x.GetParameters())
-            .Select(x => x.ParameterType)
-            .ToList();
+        SetupHappyGooglePath();
+        var service = CreateService();
 
-        Assert.DoesNotContain(typeof(IPlatformMemoryCache), parameterTypes);
-        Assert.DoesNotContain(typeof(IAnalyticsService), parameterTypes);
-        Assert.DoesNotContain(typeof(AnalyticsService), parameterTypes);
+        await service.RunAsync(StoreId, CreateRequest());
+        await service.RunAsync(StoreId, CreateRequest());
+
+        _reportClientMock.Verify(x => x.GetMetadataAsync(It.IsAny<string>()), Times.Exactly(2));
+        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>()), Times.Exactly(2));
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Exactly(2));
     }
 
     private async Task<AnalyticsDiagnosticsCheck> RunApiAccessFailureAsync(RpcException exception)
@@ -438,6 +443,39 @@ public class AnalyticsDiagnosticsServiceTests
         return apiAccess;
     }
 
+    // A green row plus a sentence is not an answer: a UI colours by status, so an event the operator asked
+    // about and is not seeing has to move the status.
+    [Fact]
+    public async Task Realtime_RequestedEventNotSeen_WarnsAndNamesIt()
+    {
+        SetupHappyGooglePath();
+        SetupRealtime(CreateRealtimeResponse(("search", "2")));
+        var service = CreateService();
+
+        var result = await service.RunAsync(StoreId, CreateRequest());
+
+        var realtime = GetCheck(result, Stages.Realtime);
+        Assert.Equal(Statuses.Warning, realtime.Status);
+        Assert.Contains("view_item", realtime.Message);
+        // The stage still reports what it DID see, and the run continues.
+        Assert.Contains("search=2", realtime.Message);
+        Assert.Equal(Statuses.Passed, GetCheck(result, Stages.ProcessedData).Status);
+    }
+
+    [Fact]
+    public async Task ProcessedData_RequestedEventNotSeen_WarnsAndNamesIt()
+    {
+        SetupHappyGooglePath();
+        SetupReport(CreateReportResponse(("search", "10")));
+        var service = CreateService();
+
+        var result = await service.RunAsync(StoreId, CreateRequest());
+
+        var processed = GetCheck(result, Stages.ProcessedData);
+        Assert.Equal(Statuses.Warning, processed.Status);
+        Assert.Contains("view_item", processed.Message);
+    }
+
     private AnalyticsDiagnosticsService CreateService()
     {
         return new AnalyticsDiagnosticsService(_settingsResolverMock.Object, _reportClientMock.Object);
@@ -448,7 +486,7 @@ public class AnalyticsDiagnosticsServiceTests
         SetupGoogleSettings();
         SetupMetadata("customUser:session_kind", "customUser:organization_id");
         SetupCompatibility(new CheckCompatibilityResponse());
-        SetupRealtime(CreateRealtimeResponse(("search", "2"), ("search", "3")));
+        SetupRealtime(CreateRealtimeResponse(("search", "2"), ("search", "3"), ("view_item", "1")));
         SetupReport(CreateReportResponse(("search", "10"), ("view_item", "4")));
     }
 
