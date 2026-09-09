@@ -16,6 +16,16 @@
       "GoogleAnalyticsUrl": {
         "title": "URL del dashboard di Google Analytics",
         "description": "URL del dashboard di Google Analytics per il reindirizzamento dal menu dell'app"
+      },
+      "DataApi": {
+        "PropertyId": {
+          "title": "Id proprietà GA4",
+          "description": "ID numerico della proprietà Google Analytics 4 per leggere i report tramite la Data API (non l'ID di misurazione G-XXXXXXX)"
+        },
+        "CacheTtlMinutes": {
+          "title": "Durata della cache dei report, minuti",
+          "description": "Per quanto tempo i risultati dei report di Google Analytics vengono memorizzati nella cache per negozio"
+        }
       }
     }
   }

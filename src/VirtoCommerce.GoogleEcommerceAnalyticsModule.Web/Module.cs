@@ -2,8 +2,11 @@ using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
@@ -18,6 +21,24 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
         public void Initialize(IServiceCollection serviceCollection)
         {
             serviceCollection.AddTransient<IGoogleAnalyticsSettingsManager, GoogleAnalyticsSettingsManager>();
+            serviceCollection.AddSingleton<IGoogleAnalyticsReportClient, GoogleAnalyticsReportClient>();
+            serviceCollection.AddTransient<IAnalyticsDataSource, GoogleAnalyticsDataSource>();
+            serviceCollection.AddTransient<IAnalyticsSettingsResolver, AnalyticsSettingsResolver>();
+            serviceCollection.AddTransient<IAnalyticsService, AnalyticsService>();
+            serviceCollection.AddTransient<IAnalyticsDiagnosticsService, AnalyticsDiagnosticsService>();
+
+            AbstractTypeFactory<AnalyticsDataApiSettings>.RegisterType<AnalyticsDataApiSettings>();
+            AbstractTypeFactory<AnalyticsDataQuery>.RegisterType<AnalyticsDataQuery>();
+            AbstractTypeFactory<AnalyticsDiagnosticsCheck>.RegisterType<AnalyticsDiagnosticsCheck>();
+            AbstractTypeFactory<AnalyticsDiagnosticsReportShape>.RegisterType<AnalyticsDiagnosticsReportShape>();
+            AbstractTypeFactory<AnalyticsDiagnosticsRequest>.RegisterType<AnalyticsDiagnosticsRequest>();
+            AbstractTypeFactory<AnalyticsDiagnosticsResult>.RegisterType<AnalyticsDiagnosticsResult>();
+            AbstractTypeFactory<AnalyticsDimensionFilter>.RegisterType<AnalyticsDimensionFilter>();
+            AbstractTypeFactory<AnalyticsEvent>.RegisterType<AnalyticsEvent>();
+            AbstractTypeFactory<AnalyticsEventSearchCriteria>.RegisterType<AnalyticsEventSearchCriteria>();
+            AbstractTypeFactory<AnalyticsEventSearchResult>.RegisterType<AnalyticsEventSearchResult>();
+            AbstractTypeFactory<AnalyticsEventSummary>.RegisterType<AnalyticsEventSummary>();
+            AbstractTypeFactory<AnalyticsEventSummaryCriteria>.RegisterType<AnalyticsEventSummaryCriteria>();
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
@@ -32,7 +53,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Web
 
             // register settings
             var settingsRegistrar = serviceProvider.GetRequiredService<ISettingsRegistrar>();
-            settingsRegistrar.RegisterSettings(ModuleConstants.Settings.General.AllSettings, ModuleInfo.Id);
+            settingsRegistrar.RegisterSettings(ModuleConstants.Settings.General.AllSettings.Concat(ModuleConstants.Settings.DataApi.AllSettings), ModuleInfo.Id);
 
             //Register store level settings
             settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.StoreLevelSettings, nameof(Store));

@@ -1,0 +1,289 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using Google.Analytics.Data.V1Beta;
+using Microsoft.Extensions.Logging;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
+using VirtoCommerce.Platform.Core.Common;
+
+namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
+
+public class GoogleAnalyticsDataSource : IAnalyticsDataSource
+{
+    private const string NotSetValue = "(not set)";
+    private const string DateHourFormat = "yyyyMMddHH";
+    private const string DateFormat = "yyyy-MM-dd";
+    private const string DefaultStartDate = "2015-08-14";
+    private const string DefaultEndDate = "today";
+
+    private static readonly string[] ItemDimensionNames =
+    {
+        ModuleConstants.Dimensions.ItemId,
+        ModuleConstants.Dimensions.ItemName,
+        ModuleConstants.Dimensions.ItemListName,
+    };
+
+    private readonly IGoogleAnalyticsReportClient _reportClient;
+    private readonly ILogger<GoogleAnalyticsDataSource> _logger;
+
+    public GoogleAnalyticsDataSource(
+        IGoogleAnalyticsReportClient reportClient,
+        ILogger<GoogleAnalyticsDataSource> logger)
+    {
+        _reportClient = reportClient;
+        _logger = logger;
+    }
+
+    public virtual Task<AnalyticsEventSearchResult> GetRowsAsync(AnalyticsDataQuery query)
+    {
+        return HasItemDimensions(query) ? GetItemScopedRowsAsync(query) : GetEventScopedRowsAsync(query);
+    }
+
+    protected virtual async Task<AnalyticsEventSearchResult> GetEventScopedRowsAsync(AnalyticsDataQuery query)
+    {
+        var response = await _reportClient.RunReportAsync(BuildEventReportRequest(query));
+        return MapResponse(response, query);
+    }
+
+    // GA4 compatibility of item-scoped dimensions combined with user-scoped custom dimensions is unverified;
+    // kept as a separate path so it can be reworked without touching the main query path.
+    protected virtual async Task<AnalyticsEventSearchResult> GetItemScopedRowsAsync(AnalyticsDataQuery query)
+    {
+        var response = await _reportClient.RunReportAsync(BuildItemReportRequest(query));
+        var result = MapResponse(response, query);
+
+        var eventName = query.EventNames?.Count == 1 ? query.EventNames[0] : null;
+        if (!string.IsNullOrEmpty(eventName))
+        {
+            foreach (var analyticsEvent in result.Events)
+            {
+                analyticsEvent.EventName = eventName;
+            }
+        }
+
+        return result;
+    }
+
+    protected virtual RunReportRequest BuildEventReportRequest(AnalyticsDataQuery query)
+    {
+        var request = CreateRequest(query);
+
+        request.Dimensions.Add(new Dimension { Name = ModuleConstants.Dimensions.EventName });
+        AddDateHourAndExtraDimensions(request, query);
+
+        request.Metrics.Add(new Metric { Name = ModuleConstants.Metrics.EventCount });
+        AddOrderBy(request, query, ModuleConstants.Metrics.EventCount);
+
+        return request;
+    }
+
+    // Item-scoped report shape per the GA4 schema: metric itemsViewed, eventName used only as a dimension filter.
+    protected virtual RunReportRequest BuildItemReportRequest(AnalyticsDataQuery query)
+    {
+        var request = CreateRequest(query);
+
+        AddDateHourAndExtraDimensions(request, query);
+
+        request.Metrics.Add(new Metric { Name = ModuleConstants.Metrics.ItemsViewed });
+        AddOrderBy(request, query, ModuleConstants.Metrics.ItemsViewed);
+
+        return request;
+    }
+
+    protected virtual RunReportRequest CreateRequest(AnalyticsDataQuery query)
+    {
+        var request = new RunReportRequest
+        {
+            Property = AnalyticsFilterBuilder.PropertyName(query.PropertyId),
+            Limit = query.Take > 0 ? query.Take : 1,
+            Offset = query.Skip,
+        };
+
+        request.DateRanges.Add(new DateRange
+        {
+            StartDate = query.From?.ToString(DateFormat, CultureInfo.InvariantCulture) ?? DefaultStartDate,
+            EndDate = query.To?.ToString(DateFormat, CultureInfo.InvariantCulture) ?? DefaultEndDate,
+        });
+
+        var dimensionFilter = BuildDimensionFilter(query);
+        if (dimensionFilter != null)
+        {
+            request.DimensionFilter = dimensionFilter;
+        }
+
+        return request;
+    }
+
+    protected virtual void AddDateHourAndExtraDimensions(RunReportRequest request, AnalyticsDataQuery query)
+    {
+        if (!IsCountSort(query))
+        {
+            request.Dimensions.Add(new Dimension { Name = ModuleConstants.Dimensions.DateHour });
+        }
+
+        foreach (var dimensionName in (query.DimensionNames ?? [])
+                     .Where(x => x != ModuleConstants.Dimensions.EventName && x != ModuleConstants.Dimensions.DateHour))
+        {
+            request.Dimensions.Add(new Dimension { Name = MapDimensionName(dimensionName) });
+        }
+    }
+
+    protected virtual void AddOrderBy(RunReportRequest request, AnalyticsDataQuery query, string metricName)
+    {
+        request.OrderBys.Add(IsCountSort(query)
+            ? new OrderBy
+            {
+                Desc = true,
+                Metric = new OrderBy.Types.MetricOrderBy { MetricName = metricName },
+            }
+            : new OrderBy
+            {
+                Desc = true,
+                Dimension = new OrderBy.Types.DimensionOrderBy { DimensionName = ModuleConstants.Dimensions.DateHour },
+            });
+    }
+
+    protected virtual FilterExpression BuildDimensionFilter(AnalyticsDataQuery query)
+    {
+        var expressions = new List<FilterExpression>();
+
+        if (!query.EventNames.IsNullOrEmpty())
+        {
+            expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.Dimensions.EventName, query.EventNames));
+        }
+
+        foreach (var filter in (query.DimensionFilters ?? []).Where(x => !string.IsNullOrEmpty(x.DimensionName)))
+        {
+            // Dropped, this widens the read instead of narrowing it — and these filters carry the consumer's
+            // data isolation. Last place that can still refuse it.
+            if (filter.Values.IsNullOrEmpty())
+            {
+                throw new ArgumentException(
+                    $"Dimension filter '{filter.DimensionName}' carries no values, which would leave the read unscoped.",
+                    nameof(query));
+            }
+
+            expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(MapDimensionName(filter.DimensionName), filter.Values));
+        }
+
+        return AnalyticsFilterBuilder.Combine(expressions);
+    }
+
+    protected virtual AnalyticsEventSearchResult MapResponse(RunReportResponse response, AnalyticsDataQuery query)
+    {
+        var result = AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance();
+        result.TotalCount = response.RowCount;
+
+        if (query.Take <= 0)
+        {
+            return result;
+        }
+
+        var headers = response.DimensionHeaders.Select(x => x.Name).ToList();
+        var timeZone = ResolvePropertyTimeZone(response.Metadata?.TimeZone);
+
+        foreach (var row in response.Rows)
+        {
+            var analyticsEvent = AbstractTypeFactory<AnalyticsEvent>.TryCreateInstance();
+
+            for (var i = 0; i < headers.Count && i < row.DimensionValues.Count; i++)
+            {
+                MapDimensionValue(analyticsEvent, headers[i], row.DimensionValues[i].Value, timeZone);
+            }
+
+            analyticsEvent.Count = row.MetricValues.Count > 0
+                && int.TryParse(row.MetricValues[0].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var count)
+                ? count
+                : 0;
+
+            result.Events.Add(analyticsEvent);
+        }
+
+        return result;
+    }
+
+    protected virtual void MapDimensionValue(AnalyticsEvent analyticsEvent, string dimensionName, string value, TimeZoneInfo timeZone)
+    {
+        if (string.IsNullOrEmpty(value) || value == NotSetValue)
+        {
+            return;
+        }
+
+        if (dimensionName == ModuleConstants.Dimensions.EventName)
+        {
+            analyticsEvent.EventName = value;
+        }
+        else if (dimensionName == ModuleConstants.Dimensions.DateHour)
+        {
+            analyticsEvent.OccurredAt = ParseDateHour(value, timeZone);
+        }
+        else
+        {
+            analyticsEvent.Dimensions[UnmapDimensionName(dimensionName)] = value;
+        }
+    }
+
+    protected virtual string MapDimensionName(string dimensionName)
+    {
+        return AnalyticsFilterBuilder.MapDimensionName(dimensionName);
+    }
+
+    protected virtual string UnmapDimensionName(string dimensionName)
+    {
+        return dimensionName.StartsWith(ModuleConstants.UserDimensions.Prefix, StringComparison.Ordinal)
+            ? dimensionName[ModuleConstants.UserDimensions.Prefix.Length..]
+            : dimensionName;
+    }
+
+    protected virtual bool HasItemDimensions(AnalyticsDataQuery query)
+    {
+        return query.DimensionNames?.Any(x => ItemDimensionNames.Contains(x)) == true
+            || query.DimensionFilters?.Any(x => ItemDimensionNames.Contains(x.DimensionName)) == true;
+    }
+
+    protected static bool IsCountSort(AnalyticsDataQuery query)
+    {
+        return ModuleConstants.SortBy.Count.EqualsIgnoreCase(query.SortBy);
+    }
+
+    // GA4 reports dateHour in the PROPERTY's timezone and ships that zone with every response; assuming UTC put
+    // every bucket out by the property's offset.
+    protected virtual TimeZoneInfo ResolvePropertyTimeZone(string timeZoneId)
+    {
+        if (string.IsNullOrEmpty(timeZoneId))
+        {
+            return TimeZoneInfo.Utc;
+        }
+
+        if (TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var timeZone))
+        {
+            return timeZone;
+        }
+
+        // Falling back leaves every bucket out by the property's offset, so it cannot pass unrecorded.
+        _logger.LogWarning(
+            "Google Analytics reported time zone '{TimeZone}', which could not be resolved; hour buckets are left " +
+            "uncorrected and may be wrong by the property's offset", timeZoneId);
+
+        return TimeZoneInfo.Utc;
+    }
+
+    private static DateTime? ParseDateHour(string value, TimeZoneInfo timeZone)
+    {
+        if (!DateTime.TryParseExact(value, DateHourFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result))
+        {
+            return null;
+        }
+
+        var local = DateTime.SpecifyKind(result, DateTimeKind.Unspecified);
+
+        // The hour a spring-forward skips has no UTC instant, and converting one throws.
+        return timeZone.IsInvalidTime(local)
+            ? DateTime.SpecifyKind(local, DateTimeKind.Utc)
+            : TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
+    }
+}

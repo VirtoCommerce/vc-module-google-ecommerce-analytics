@@ -16,6 +16,16 @@
       "GoogleAnalyticsUrl": {
         "title": "Google Analytics-Dashboard-URL",
         "description": "Google Analytics-Dashboard-URL für die Umleitung aus dem App-Menü"
+      },
+      "DataApi": {
+        "PropertyId": {
+          "title": "GA4-Property-ID",
+          "description": "Numerische Google Analytics 4 Property-ID zum Lesen von Berichten über die Data API (nicht die Mess-ID G-XXXXXXX)"
+        },
+        "CacheTtlMinutes": {
+          "title": "Cache-Lebensdauer der Berichte, Minuten",
+          "description": "Wie lange Berichtsergebnisse von Google Analytics pro Store zwischengespeichert werden"
+        }
       }
     }
   }

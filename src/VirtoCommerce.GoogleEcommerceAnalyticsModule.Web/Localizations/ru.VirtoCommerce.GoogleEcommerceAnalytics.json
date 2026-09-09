@@ -16,6 +16,16 @@
       "GoogleAnalyticsUrl": {
         "title": "URL панели управления Google Analytics",
         "description": "URL панели управления Google Analytics для перенаправления из меню приложения"
+      },
+      "DataApi": {
+        "PropertyId": {
+          "title": "Идентификатор ресурса GA4",
+          "description": "Числовой идентификатор ресурса Google Analytics 4 для чтения отчётов через Data API (не идентификатор измерений G-XXXXXXX)"
+        },
+        "CacheTtlMinutes": {
+          "title": "Время жизни кэша отчётов, минуты",
+          "description": "Как долго результаты отчётов Google Analytics кэшируются для магазина"
+        }
       }
     }
   }

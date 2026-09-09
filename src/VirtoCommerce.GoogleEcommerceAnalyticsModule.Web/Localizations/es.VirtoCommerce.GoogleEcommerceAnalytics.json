@@ -16,6 +16,16 @@
       "GoogleAnalyticsUrl": {
         "title": "URL del panel de control de Google Analytics",
         "description": "URL del panel de control de Google Analytics para redirigir desde el menú de la aplicación"
+      },
+      "DataApi": {
+        "PropertyId": {
+          "title": "Id de propiedad GA4",
+          "description": "ID numérico de la propiedad de Google Analytics 4 para leer informes mediante la Data API (no el ID de medición G-XXXXXXX)"
+        },
+        "CacheTtlMinutes": {
+          "title": "Duración de la caché de informes, minutos",
+          "description": "Cuánto tiempo se almacenan en caché los resultados de los informes de Google Analytics por tienda"
+        }
       }
     }
   }

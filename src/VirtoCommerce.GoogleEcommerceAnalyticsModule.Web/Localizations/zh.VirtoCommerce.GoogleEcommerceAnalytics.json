@@ -16,6 +16,16 @@
       "GoogleAnalyticsUrl": {
         "title": "Google Analytics 仪表板 URL",
         "description": "从应用菜单重定向的 Google Analytics 仪表板 URL"
+      },
+      "DataApi": {
+        "PropertyId": {
+          "title": "GA4 媒体资源 ID",
+          "description": "用于通过 Data API 读取报告的 Google Analytics 4 数值媒体资源 ID（不是 G-XXXXXXX 衡量 ID）"
+        },
+        "CacheTtlMinutes": {
+          "title": "报告缓存有效期（分钟）",
+          "description": "每个商店的 Google Analytics 报告结果缓存时长"
+        }
       }
     }
   }
