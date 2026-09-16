@@ -295,28 +295,23 @@ public class GoogleAnalyticsDataSourceTests
         Assert.Equal("SKU-001", analyticsEvent.Dimensions["itemId"]);
     }
 
+    // Item rows carry no event name, so two requested names would come back unattributable — and through
+    // CreateSummaries as zero counts indistinguishable from no activity.
     [Fact]
-    public async Task GetRowsAsync_ItemRows_MultipleEventNames_LeavesEventNameNull()
+    public async Task GetRowsAsync_ItemRows_MultipleEventNames_Throws()
     {
-        var response = new RunReportResponse { RowCount = 1 };
-        response.DimensionHeaders.Add(new DimensionHeader { Name = "itemId" });
+        var dataSource = CreateDataSource();
 
-        var row = new Row();
-        row.DimensionValues.Add(new DimensionValue { Value = "SKU-001" });
-        row.MetricValues.Add(new MetricValue { Value = "9" });
-        response.Rows.Add(row);
-
-        var dataSource = CreateDataSource(response);
-
-        var result = await dataSource.GetRowsAsync(new AnalyticsDataQuery
+        var query = new AnalyticsDataQuery
         {
             PropertyId = "123456",
             EventNames = new List<string> { ModuleConstants.EventNames.ViewItem, ModuleConstants.EventNames.AddToCart },
             DimensionNames = new List<string> { ModuleConstants.Dimensions.ItemId },
             Take = 10,
-        });
+        };
 
-        Assert.Null(Assert.Single(result.Events).EventName);
+        await Assert.ThrowsAsync<ArgumentException>(() => dataSource.GetRowsAsync(query));
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
     }
 
     // GA4 reports dateHour in the PROPERTY's timezone and ships that zone with the response.
@@ -358,6 +353,25 @@ public class GoogleAnalyticsDataSourceTests
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() => dataSource.GetRowsAsync(query));
         Assert.Contains(ModuleConstants.UserDimensions.OrganizationId, exception.Message);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
+    }
+
+    // Same widening as a filter without values, from the other end.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task GetRowsAsync_DimensionFilterWithoutName_Throws(string dimensionName)
+    {
+        var dataSource = CreateDataSource();
+
+        var query = CreateDateHourQuery();
+        query.DimensionFilters = new List<AnalyticsDimensionFilter>
+        {
+            new() { DimensionName = dimensionName, Values = new List<string> { "org1" } },
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => dataSource.GetRowsAsync(query));
         _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
     }
 

@@ -78,10 +78,13 @@ needed if another module consumes `IAnalyticsService`.
    Settings > Property Details), e.g. `123456789`. This is *not* the `G-XXXXXXXXXX` measurement id.
 1. **GoogleAnalytics4.DataApi.CacheTtlMinutes** - how long a successful report is cached per store and query
    (default `60`). Data API tokens are metered per property per day, so caching is a quota requirement rather than
-   tuning; failed reports are cached for a fixed 60 seconds so a misconfiguration cannot burn quota. Set it to
-   **`0`** to read Google on every call, and note that the platform's own `Caching:CacheEnabled=false` is honoured
-   here too - both are for diagnosing stale reporting data, not for normal operation. The cache key is the store
-   plus the query's *dates*, so two reads differing only in time of day share one entry.
+   tuning; a failed report is cached for a fixed 60 seconds - as the failure it was, not as an empty result - so a
+   misconfiguration cannot burn quota. Set it to **`0`** to read Google on every call, and note that the platform's
+   own `Caching:CacheEnabled=false` is honoured here too - both are for diagnosing stale reporting data, not for
+   normal operation. The cache key covers the **whole** query - store, event names, dimensions, filters, sort and
+   paging as well as dates - together with the resolved property id, so re-pointing a store at another property
+   takes effect at once; `from`/`to` are rounded to the day, so two reads differing only in time of day share one
+   entry.
 
 ## Reading analytics data
 
@@ -107,6 +110,31 @@ consumers build their own fields on top of it.
 1. Grant the credential's principal the **Viewer** role on the GA4 property (GA4 Admin > Property access management).
 1. Register any **user-scoped custom dimensions** a consumer filters on in GA4 Admin > Custom definitions.
    Registration is **not retroactive** — only events collected after it are reportable.
+
+### When a read fails
+
+`IAnalyticsService` reads **throw**; they never answer a failure with an empty result, because an empty result is
+an answer a consumer will act on and "no data" would become the module's single reply to every question. A read
+checks three things in order — the criteria, then the store's configuration, then Google — and each of them can
+refuse:
+
+* a criteria with no store id, a dimension filter with no name or no values, or an item-scoped read narrowed to
+  more than one event name — `ArgumentException`, raised before anything is loaded or cached;
+* a store with no property id — `AnalyticsException`. Not being configured is a configuration error, not a state
+  to be reported as "no activity";
+* anything Google refuses — a property that does not exist, a credential without access, a quota rejection —
+  `AnalyticsException`.
+
+The exception names the store and the operation and nothing else. The property id, the settings and Google's own
+response stay in this module's log, because a consumer cannot know how far its own error surface travels; run
+`POST api/googleanalytics/{storeId}/diagnostics` to see the cause.
+
+Only the third step is cached. The criteria and the configuration are re-checked on every call, so a store
+configured a minute after a failed read reports at once instead of after the TTL. `IsConfiguredAsync` is a
+question rather than a read, and answers `false` instead of throwing.
+
+How to degrade is the consumer's decision: catch `AnalyticsException`, show your own unavailable state, and keep
+"reporting is broken" distinguishable from "this customer did nothing".
 
 ### What this source can and cannot answer
 

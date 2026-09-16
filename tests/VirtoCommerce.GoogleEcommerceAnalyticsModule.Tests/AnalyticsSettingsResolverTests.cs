@@ -79,6 +79,32 @@ public class AnalyticsSettingsResolverTests
         Assert.True(settings.IsConfigured);
     }
 
+    // A property id of spaces is the same gesture as a cleared one — and it would otherwise report as configured
+    // and build "properties/ " for every read.
+    [Fact]
+    public async Task ResolveAsync_WhitespaceStoreValue_FallsBackToGlobal()
+    {
+        SetupGlobalSetting(ModuleConstants.Settings.DataApi.PropertyId.Name, "global-property");
+        SetupStore(CreateStore((ModuleConstants.Settings.DataApi.PropertyId.Name, "   ")));
+        var resolver = CreateResolver();
+
+        var settings = await resolver.ResolveAsync(StoreId);
+
+        Assert.Equal("global-property", settings.PropertyId);
+    }
+
+    // Typed into the admin UI, not through it: a non-numeric override must not take reporting down with it.
+    [Fact]
+    public async Task ResolveAsync_MalformedStoreValue_FallsBackToGlobal()
+    {
+        SetupStore(CreateStore((ModuleConstants.Settings.DataApi.CacheTtlMinutes.Name, "not-a-number")));
+        var resolver = CreateResolver();
+
+        var settings = await resolver.ResolveAsync(StoreId);
+
+        Assert.Equal(ModuleConstants.Settings.DataApi.DefaultCacheTtlMinutes, settings.CacheTtlMinutes);
+    }
+
     [Fact]
     public async Task ResolveAsync_NullStoreId_UsesGlobalSettingsWithoutLoadingStore()
     {

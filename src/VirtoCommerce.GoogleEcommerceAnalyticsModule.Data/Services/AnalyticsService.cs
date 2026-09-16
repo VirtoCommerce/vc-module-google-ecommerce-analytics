@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
+using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Exceptions;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
@@ -51,6 +52,8 @@ public class AnalyticsService : IAnalyticsService
 
     protected virtual TimeSpan FailureCacheTtl => TimeSpan.FromSeconds(60);
 
+    // A question, not a read: the caller is asking whether reading would work at all, so a store that cannot
+    // report is the answer rather than a failure.
     public virtual async Task<bool> IsConfiguredAsync(string storeId)
     {
         try
@@ -67,9 +70,7 @@ public class AnalyticsService : IAnalyticsService
 
     public virtual async Task<AnalyticsEventSearchResult> SearchEventsAsync(AnalyticsEventSearchCriteria criteria)
     {
-        ArgumentNullException.ThrowIfNull(criteria);
-
-        criteria = WithNormalizedDates(criteria);
+        criteria = PrepareCriteria(criteria);
 
         var result = await GetOrCreateAsync(
             SearchOperation,
@@ -83,85 +84,123 @@ public class AnalyticsService : IAnalyticsService
                 query.Skip = criteria.Skip;
 
                 return _dataSource.GetRowsAsync(query);
-            },
-            AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance);
+            });
 
         return result.CloneTyped();
     }
 
     public virtual async Task<IList<AnalyticsEventSummary>> GetEventSummariesAsync(AnalyticsEventSummaryCriteria criteria)
     {
-        ArgumentNullException.ThrowIfNull(criteria);
-
-        criteria = WithNormalizedDates(criteria);
+        criteria = PrepareCriteria(criteria);
 
         var result = await GetOrCreateAsync(
             SummariesOperation,
             criteria,
-            settings => CreateSummariesAsync(settings, criteria),
-            () => CreateEmptySummaries(criteria));
+            settings => CreateSummariesAsync(settings, criteria));
 
         return result.Select(x => x.CloneTyped()).ToList();
+    }
+
+    // Step 1 of a Google call: the arguments. Nothing here loads configuration or reaches the cache, so a caller
+    // that fixes its criteria is answered at once rather than after a TTL.
+    protected virtual T PrepareCriteria<T>(T criteria)
+        where T : AnalyticsEventCriteriaBase
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+
+        if (string.IsNullOrWhiteSpace(criteria.StoreId))
+        {
+            throw new ArgumentException("A store id is required: it is what selects the GA4 property to report on.", nameof(criteria));
+        }
+
+        return WithNormalizedDates(criteria);
     }
 
     protected virtual async Task<T> GetOrCreateAsync<T>(
         string operation,
         AnalyticsEventCriteriaBase criteria,
-        Func<AnalyticsDataApiSettings, Task<T>> factory,
-        Func<T> createEmptyResult)
+        Func<AnalyticsDataApiSettings, Task<T>> factory)
+        where T : class
     {
+        var settings = await ResolveSettingsAsync(operation, criteria.StoreId);
+
+        T result;
+
+        if (criteria.BypassCache)
+        {
+            result = await ReadAsync(operation, criteria.StoreId, factory, settings, cacheOptions: null);
+        }
+        else
+        {
+            // The property id belongs in the key because it is what the rows are OF: re-pointing a store at
+            // another property must not keep serving the previous property's numbers until the TTL runs out.
+            var cacheKey = CacheKey.With(GetType(), operation, settings.PropertyId, criteria.GetCacheKey());
+
+            result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey,
+                cacheOptions => ReadAsync(operation, criteria.StoreId, factory, settings, cacheOptions));
+        }
+
+        return result ?? throw CreateReadException(operation, criteria.StoreId);
+    }
+
+    // Step 2: the configuration. Cheap, calls nothing, and deliberately outside the cache — a cached "not
+    // configured" would outlive the setting that fixed it.
+    protected virtual async Task<AnalyticsDataApiSettings> ResolveSettingsAsync(string operation, string storeId)
+    {
+        AnalyticsDataApiSettings settings;
+
         try
         {
-            var settings = await _settingsResolver.ResolveAsync(criteria.StoreId);
-            if (!settings.IsConfigured)
-            {
-                return createEmptyResult();
-            }
-
-            if (criteria.BypassCache)
-            {
-                return await ReadAsync(operation, criteria, factory, createEmptyResult, settings, null);
-            }
-
-            var cacheKey = CacheKey.With(GetType(), operation, criteria.GetCacheKey());
-
-            return await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, cacheOptions =>
-            {
-                ApplyCacheTtl(cacheOptions, GetCacheTtl(settings));
-
-                return ReadAsync(operation, criteria, factory, createEmptyResult, settings, cacheOptions);
-            });
+            settings = await _settingsResolver.ResolveAsync(storeId);
         }
         catch (Exception ex)
         {
-            LogFailure(operation, criteria.StoreId, ex);
-            return createEmptyResult();
+            LogFailure(operation, storeId, ex);
+            throw CreateReadException(operation, storeId);
+        }
+
+        if (!settings.IsConfigured)
+        {
+            // Not a state to answer with an empty result: a store with no property id cannot report at all, and
+            // a consumer handed "no data" would present that as fact.
+            throw new AnalyticsException($"Google Analytics reporting is not configured for store '{storeId}'.");
+        }
+
+        return settings;
+    }
+
+    // Step 3: the call, and the only step that is cached. A failed call is cached as a null — the entry is what
+    // keeps a property Google refuses from spending the quota again on every page render — and every reader of
+    // it is told the read failed rather than handed an empty result.
+    protected virtual async Task<T> ReadAsync<T>(
+        string operation,
+        string storeId,
+        Func<AnalyticsDataApiSettings, Task<T>> factory,
+        AnalyticsDataApiSettings settings,
+        MemoryCacheEntryOptions cacheOptions)
+        where T : class
+    {
+        try
+        {
+            var result = await factory(settings);
+            ApplyCacheTtl(cacheOptions, GetCacheTtl(settings));
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogFailure(operation, storeId, ex);
+            ApplyCacheTtl(cacheOptions, FailureCacheTtl);
+
+            return null;
         }
     }
 
-    private async Task<T> ReadAsync<T>(
-        string operation,
-        AnalyticsEventCriteriaBase criteria,
-        Func<AnalyticsDataApiSettings, Task<T>> factory,
-        Func<T> createEmptyResult,
-        AnalyticsDataApiSettings settings,
-        MemoryCacheEntryOptions cacheOptions)
+    // Google's own words never leave this module: what a consumer catches names the store and the operation,
+    // because it cannot know how far its own error surface travels. The cause is in the log line above.
+    protected virtual AnalyticsException CreateReadException(string operation, string storeId)
     {
-        try
-        {
-            return await factory(settings);
-        }
-        catch (Exception ex)
-        {
-            LogFailure(operation, criteria.StoreId, ex);
-
-            if (cacheOptions != null)
-            {
-                ApplyCacheTtl(cacheOptions, FailureCacheTtl);
-            }
-
-            return createEmptyResult();
-        }
+        return new AnalyticsException($"Google Analytics {operation} failed for store '{storeId}'.");
     }
 
     // The request carries dates, so criteria differing only in time of day are one Google query — but
@@ -204,21 +243,12 @@ public class AnalyticsService : IAnalyticsService
         // Count-mode rows carry no date, so the summaries come back with a null LastOccurredAt that the probe fills.
         var summaries = CreateSummaries(criteria, totals.Events);
 
+        // A failed probe fails the whole summary read: its null LastOccurredAt is indistinguishable from "this
+        // event has never happened", so keeping the totals would hand a consumer a wrong answer as a fact.
         await Parallel.ForEachAsync(
             summaries.Where(x => x.TotalCount > 0),
             new ParallelOptions { MaxDegreeOfParallelism = MaxProbeConcurrency },
-            async (summary, _) =>
-            {
-                try
-                {
-                    summary.LastOccurredAt = await GetLastOccurredAtAsync(settings, criteria, summary.EventName);
-                }
-                catch (Exception ex)
-                {
-                    // The totals already succeeded; faulting the loop would discard every count and cache zeros.
-                    LogFailure($"last occurrence of '{summary.EventName}'", criteria.StoreId, ex);
-                }
-            });
+            async (summary, _) => summary.LastOccurredAt = await GetLastOccurredAtAsync(settings, criteria, summary.EventName));
 
         return summaries;
     }
@@ -249,12 +279,6 @@ public class AnalyticsService : IAnalyticsService
         query.To = criteria.To;
 
         return query;
-    }
-
-    // Requested names still yield zero-count summaries; a criteria naming none has nothing to shape them from.
-    protected virtual IList<AnalyticsEventSummary> CreateEmptySummaries(AnalyticsEventSummaryCriteria criteria)
-    {
-        return CreateSummaries(criteria, []);
     }
 
     protected virtual IList<AnalyticsEventSummary> CreateSummaries(AnalyticsEventSummaryCriteria criteria, IList<AnalyticsEvent> events)
@@ -300,7 +324,7 @@ public class AnalyticsService : IAnalyticsService
     // CacheEnabled=false inert and leaves the 15-min sliding default to evict first.
     protected virtual void ApplyCacheTtl(MemoryCacheEntryOptions options, TimeSpan ttl)
     {
-        if (options.AbsoluteExpirationRelativeToNow == CacheDisabled)
+        if (options == null || options.AbsoluteExpirationRelativeToNow == CacheDisabled)
         {
             return;
         }

@@ -9,5 +9,7 @@ public class AnalyticsDataApiSettings
     // The descriptor's default: 0 now means "disabled", so an unset instance must not land on it.
     public int CacheTtlMinutes { get; set; } = DataApiSettings.DefaultCacheTtlMinutes;
 
-    public bool IsConfigured => !string.IsNullOrEmpty(PropertyId);
+    // Whitespace is not a property id: a value of spaces would otherwise report as configured and build
+    // "properties/ " for every read.
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(PropertyId);
 }

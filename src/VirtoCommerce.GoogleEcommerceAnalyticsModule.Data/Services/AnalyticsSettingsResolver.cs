@@ -42,11 +42,8 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
 
     protected virtual async Task<T> GetSettingAsync<T>(ICollection<ObjectSettingEntry> storeSettings, SettingDescriptor descriptor)
     {
-        // Not just null: the admin UI writes "" for a cleared ShortText, and taking that as an override would
-        // disable reporting rather than restore the global value.
         var hasStoreValue = storeSettings?.Any(x =>
-            x.Name.EqualsIgnoreCase(descriptor.Name) &&
-            x.Value is not null and not "") == true;
+            x.Name.EqualsIgnoreCase(descriptor.Name) && IsStoreOverride(x.Value)) == true;
 
         if (!hasStoreValue)
         {
@@ -65,5 +62,13 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
 
             return await _settingsManager.GetValueAsync<T>(descriptor);
         }
+    }
+
+    // Not just null: the admin UI writes "" for a cleared ShortText and a value of spaces is the same gesture,
+    // so taking either as an override would disable reporting rather than restore the global value. Non-text
+    // settings keep the plain null check — 0 is a legitimate CacheTtlMinutes.
+    private static bool IsStoreOverride(object value)
+    {
+        return value is string text ? !string.IsNullOrWhiteSpace(text) : value is not null;
     }
 }

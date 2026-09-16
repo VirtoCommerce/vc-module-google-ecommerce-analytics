@@ -124,9 +124,14 @@ Reporting needs two extra store settings — the numeric **GA4 property id** and
 deliberately no credential *setting*, so no key material is stored in the platform database.
 `POST api/googleanalytics/{storeId}/diagnostics` runs a staged checklist that names exactly what is missing.
 
+Reads **throw** rather than answer a failure with an empty result — a store with no property id, a refused
+credential and a Google outage all raise `AnalyticsException` — so a consumer can tell "reporting is broken" from
+"this customer did nothing" and decide for itself how to degrade.
+
 Two limits are properties of the source rather than of this module: GA4 takes up to **24-48 hours** to process
 events, and reports are **aggregates** whose finest time dimension is the hour. Setup steps, the settings, the
-credential prerequisites and the diagnostics payload are documented in [docs/index.md](docs/index.md).
+credential prerequisites, the failure contract and the diagnostics payload are documented in
+[docs/index.md](docs/index.md).
 
 ## Documentation
 * [Google Analytics 4](https://developers.google.com/analytics/devguides/collection/ga4)

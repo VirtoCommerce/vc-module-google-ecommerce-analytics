@@ -53,6 +53,16 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     // kept as a separate path so it can be reworked without touching the main query path.
     protected virtual async Task<AnalyticsEventSearchResult> GetItemScopedRowsAsync(AnalyticsDataQuery query)
     {
+        // The item report carries no eventName dimension, so every row arrives with a null EventName and only a
+        // single requested name can be filled back in below. Two or more would reach a consumer as rows it cannot
+        // attribute — and through CreateSummaries as zero counts indistinguishable from no activity at all.
+        if (query.EventNames?.Count > 1)
+        {
+            throw new ArgumentException(
+                "An item-scoped read cannot be narrowed to more than one event name: its rows carry no event name to tell them apart.",
+                nameof(query));
+        }
+
         var response = await _reportClient.RunReportAsync(BuildItemReportRequest(query));
         var result = MapResponse(response, query);
 
@@ -156,10 +166,17 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
             expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.Dimensions.EventName, query.EventNames));
         }
 
-        foreach (var filter in (query.DimensionFilters ?? []).Where(x => !string.IsNullOrEmpty(x.DimensionName)))
+        foreach (var filter in query.DimensionFilters ?? [])
         {
-            // Dropped, this widens the read instead of narrowing it — and these filters carry the consumer's
-            // data isolation. Last place that can still refuse it.
+            // Dropped rather than refused, either of these widens the read instead of narrowing it — and these
+            // filters carry the consumer's data isolation. Last place that can still refuse one.
+            if (string.IsNullOrWhiteSpace(filter?.DimensionName))
+            {
+                throw new ArgumentException(
+                    "A dimension filter carries no dimension name, which would leave the read unscoped.",
+                    nameof(query));
+            }
+
             if (filter.Values.IsNullOrEmpty())
             {
                 throw new ArgumentException(
