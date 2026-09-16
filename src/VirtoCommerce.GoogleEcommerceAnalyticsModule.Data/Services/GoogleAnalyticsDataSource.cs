@@ -46,9 +46,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     // kept as a separate path so it can be reworked without touching the main query path.
     protected virtual async Task<AnalyticsEventSearchResult> GetItemScopedRowsAsync(AnalyticsDataQuery query)
     {
-        // The item report carries no eventName dimension, so every row arrives with a null EventName and only a
-        // single requested name can be filled back in below. Two or more would reach a consumer as rows it cannot
-        // attribute — and through CreateSummaries as zero counts indistinguishable from no activity at all.
+        // Refused at the service entry too; this is the backstop for a direct IAnalyticsDataSource caller.
         if (query.EventNames?.Count > 1)
         {
             throw new ArgumentException(
@@ -159,8 +157,6 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
             expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.Dimensions.EventName, query.EventNames));
         }
 
-        // Already checked at the service entry, before the cache could answer. Repeated here because this is the
-        // last place that can refuse an unscoped read reaching Google, and IAnalyticsDataSource has its own callers.
         AnalyticsFilterBuilder.ValidateDimensionFilters(query.DimensionFilters, nameof(query));
 
         foreach (var filter in query.DimensionFilters ?? [])

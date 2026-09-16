@@ -10,8 +10,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 
 internal static class AnalyticsFilterBuilder
 {
-    // Naming any of these switches the report to the item scope, where Count means items viewed and the rows
-    // carry no eventName of their own.
+    // Naming any of these switches the report to the item scope, whose rows carry no eventName of their own.
     private static readonly string[] ItemDimensionNames =
     [
         ModuleConstants.Dimensions.ItemId,
@@ -24,15 +23,14 @@ internal static class AnalyticsFilterBuilder
         return $"properties/{propertyId}";
     }
 
-    // One implementation, two callers on purpose: the service runs it as an argument check, before configuration
-    // and before the cache, so a caller-caused refusal is never cached; the data source runs it again as the last
-    // place that can refuse an unscoped read reaching Google.
+    // Two callers on purpose: the service runs it before the cache, so a caller-caused refusal is never cached;
+    // the data source runs it again as the last place that can refuse an unscoped read reaching Google.
     public static void ValidateDimensionFilters(IList<AnalyticsDimensionFilter> filters, string paramName)
     {
         foreach (var filter in filters ?? [])
         {
-            // Dropped rather than refused, either of these widens the read instead of narrowing it — and these
-            // filters carry the consumer's data isolation.
+            // Dropped rather than refused, either of these widens the read — and these filters carry the
+            // consumer's data isolation.
             if (string.IsNullOrWhiteSpace(filter?.DimensionName))
             {
                 throw new ArgumentException(

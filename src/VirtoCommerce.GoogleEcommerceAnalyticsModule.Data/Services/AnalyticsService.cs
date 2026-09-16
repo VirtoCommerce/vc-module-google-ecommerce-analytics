@@ -16,16 +16,14 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 
 public class AnalyticsService : IAnalyticsService
 {
-    // Count mode returns one row per event name, so the totals read is bounded by the names asked for — or, when
-    // the caller names none, by this. GA4 allows a property up to 500 distinct event names, but a summary over
-    // hundreds of them is a reporting question, not a feature read: this bounds the probe fan-out below with it.
+    // Count mode returns one row per event name, so a summary naming none is bounded by this — and so is the
+    // probe fan-out below. A summary over hundreds of names is a reporting question, not a feature read.
     private const int MaxEventNames = 50;
 
     // Date mode orders by dateHour descending, so the newest bucket is the first row.
     private const int LatestBucketProbeSize = 1;
 
-    // The probes are independent, so they run together instead of nose to tail. Capped rather than unbounded:
-    // GA4 limits concurrent requests per property, and a criteria naming no events can carry MaxEventNames.
+    // The probes are independent, so they run together — capped, because GA4 limits concurrent requests.
     private const int MaxProbeConcurrency = 4;
     // How the platform expresses Caching:CacheEnabled=false on the options it hands the factory.
     private static readonly TimeSpan CacheDisabled = TimeSpan.FromTicks(1);
@@ -53,10 +51,8 @@ public class AnalyticsService : IAnalyticsService
 
     protected virtual TimeSpan FailureCacheTtl => TimeSpan.FromSeconds(60);
 
-    // A question, not a read: "can this store report at all?". `false` therefore means exactly one thing — the
-    // settings resolved and carry no property id. A resolver that FAILED has not answered the question, and
-    // saying "no" would put an outage back in the same bucket as "not configured", which is the conflation the
-    // read path exists to remove.
+    // `false` means exactly one thing: the settings resolved and carry no property id. A resolver that FAILED
+    // has not answered the question, so it throws — an outage must not read as "not configured".
     public virtual async Task<bool> IsConfiguredAsync(string storeId)
     {
         AnalyticsDataApiSettings settings;
@@ -107,9 +103,6 @@ public class AnalyticsService : IAnalyticsService
         return result.Select(x => x.CloneTyped()).ToList();
     }
 
-    // Step 1 of a Google call: the arguments. Nothing here loads configuration or reaches the cache, so a caller
-    // that fixes its criteria is answered at once rather than after a TTL.
-    //
     // StoreId is deliberately NOT required: an absent one resolves the global settings, which is the documented
     // store -> global -> default fallback and the shape a consumer uses for an unnarrowed read.
     protected virtual T PrepareCriteria<T>(T criteria)
@@ -121,8 +114,6 @@ public class AnalyticsService : IAnalyticsService
         return WithNormalizedDates(criteria);
     }
 
-    // Every refusal a caller can fix by changing its own arguments belongs here, ahead of the configuration and
-    // the cache: the data source refuses the same two again, but only after the entry that would cache the answer.
     protected virtual void ValidateCriteria(AnalyticsEventCriteriaBase criteria)
     {
         AnalyticsFilterBuilder.ValidateDimensionFilters(criteria.DimensionFilters, nameof(criteria));
@@ -145,6 +136,8 @@ public class AnalyticsService : IAnalyticsService
         Func<AnalyticsDataApiSettings, Task<T>> factory)
         where T : class
     {
+        // Arguments, then configuration, then the call — and only the call is cached, so fixing a criteria or a
+        // setting takes effect on the next read instead of after the TTL.
         var settings = await ResolveSettingsAsync(operation, criteria.StoreId);
 
         T result;
@@ -155,8 +148,7 @@ public class AnalyticsService : IAnalyticsService
         }
         else
         {
-            // The property id belongs in the key because it is what the rows are OF: re-pointing a store at
-            // another property must not keep serving the previous property's numbers until the TTL runs out.
+            // The property id is what the rows are OF: re-pointing a store must not keep serving the old numbers.
             var cacheKey = CacheKey.With(GetType(), operation, settings.PropertyId, criteria.GetCacheKey());
 
             result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey,
@@ -166,8 +158,6 @@ public class AnalyticsService : IAnalyticsService
         return result ?? throw CreateReadException(operation, criteria.StoreId);
     }
 
-    // Step 2: the configuration. Cheap, calls nothing, and deliberately outside the cache — a cached "not
-    // configured" would outlive the setting that fixed it.
     protected virtual async Task<AnalyticsDataApiSettings> ResolveSettingsAsync(string operation, string storeId)
     {
         AnalyticsDataApiSettings settings;
@@ -184,17 +174,15 @@ public class AnalyticsService : IAnalyticsService
 
         if (!settings.IsConfigured)
         {
-            // Not a state to answer with an empty result: no property id means nothing can be reported at all,
-            // and a consumer handed "no data" would present that as fact.
+            // Not a state to answer with an empty result: a consumer handed "no data" would present it as fact.
             throw new AnalyticsException($"Google Analytics reporting is not configured{DescribeStore(storeId)}.");
         }
 
         return settings;
     }
 
-    // Step 3: the call, and the only step that is cached. A failed call is cached as a null — the entry is what
-    // keeps a property Google refuses from spending the quota again on every page render — and every reader of
-    // it is told the read failed rather than handed an empty result.
+    // A failed call is cached as a null: the entry stops a refused property spending the quota on every page
+    // render, and every reader of it is still told the read failed.
     protected virtual async Task<T> ReadAsync<T>(
         string operation,
         string storeId,
@@ -219,8 +207,6 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    // Google's own words never leave this module: what a consumer catches names the store and the operation,
-    // because it cannot know how far its own error surface travels. The cause is in the log line above.
     protected virtual AnalyticsException CreateReadException(string operation, string storeId)
     {
         return new AnalyticsException($"Google Analytics {operation} failed{DescribeStore(storeId)}.");
@@ -254,11 +240,9 @@ public class AnalyticsService : IAnalyticsService
         return value is null || value.Value.TimeOfDay == TimeSpan.Zero;
     }
 
-    // A summary is a sum and a newest-occurrence per event name, and GA has no "max(dateHour)" aggregation — so
-    // reducing a fetched series here would transfer one row per event name PER HOUR (years of rows) to produce two
-    // numbers. Two narrow reads answer it instead: 'count' mode collapses to one row per event name carrying the
-    // summed metric, and a one-row 'date' probe per event name carries its newest bucket. Names with no events at
-    // all are not probed.
+    // GA has no "max(dateHour)", so reducing a fetched series would transfer one row per event name PER HOUR to
+    // produce two numbers. Two narrow reads answer it instead: 'count' mode for the totals, then a one-row 'date'
+    // probe per name that has any.
     protected virtual async Task<IList<AnalyticsEventSummary>> CreateSummariesAsync(
         AnalyticsDataApiSettings settings,
         AnalyticsEventSummaryCriteria criteria)
@@ -272,8 +256,7 @@ public class AnalyticsService : IAnalyticsService
         // Count-mode rows carry no date, so the summaries come back with a null LastOccurredAt that the probe fills.
         var summaries = CreateSummaries(criteria, totals.Events);
 
-        // A failed probe fails the whole summary read: its null LastOccurredAt is indistinguishable from "this
-        // event has never happened", so keeping the totals would hand a consumer a wrong answer as a fact.
+        // A failed probe fails the whole read: a null LastOccurredAt reads as "never happened".
         await Parallel.ForEachAsync(
             summaries.Where(x => x.TotalCount > 0),
             new ParallelOptions { MaxDegreeOfParallelism = MaxProbeConcurrency },

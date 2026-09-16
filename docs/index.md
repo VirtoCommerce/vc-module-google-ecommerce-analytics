@@ -78,13 +78,12 @@ needed if another module consumes `IAnalyticsService`.
    Settings > Property Details), e.g. `123456789`. This is *not* the `G-XXXXXXXXXX` measurement id.
 1. **GoogleAnalytics4.DataApi.CacheTtlMinutes** - how long a successful report is cached per store and query
    (default `60`). Data API tokens are metered per property per day, so caching is a quota requirement rather than
-   tuning; a failed report is cached for a fixed 60 seconds - as the failure it was, not as an empty result - so a
-   misconfiguration cannot burn quota. Set it to **`0`** to read Google on every call, and note that the platform's
+   tuning. Set it to **`0`** to read Google on every call, and note that the platform's
    own `Caching:CacheEnabled=false` is honoured here too - both are for diagnosing stale reporting data, not for
    normal operation. The cache key covers the **whole** query - store, event names, dimensions, filters, sort and
    paging as well as dates - together with the resolved property id, so re-pointing a store at another property
    takes effect at once; `from`/`to` are rounded to the day, so two reads differing only in time of day share one
-   entry.
+   entry. Failed reads are cached too, briefly - see [When a read fails](#when-a-read-fails).
 
 ## Reading analytics data
 
@@ -130,8 +129,9 @@ The exception names the store and the operation and nothing else. The property i
 response stay in this module's log, because a consumer cannot know how far its own error surface travels; run
 `POST api/googleanalytics/{storeId}/diagnostics` to see the cause.
 
-Only the third step is cached. The criteria and the configuration are re-checked on every call, so a store
-configured a minute after a failed read reports at once instead of after the TTL. `IsConfiguredAsync` is a
+Only the third step is cached — a failure included, for a fixed 60 seconds, so a misconfigured property cannot
+burn quota on a hot page. The criteria and the configuration are re-checked on every call, so a store configured
+a minute after a failed read reports at once instead of after the TTL. `IsConfiguredAsync` is a
 question rather than a read, and its `false` means exactly one thing — the settings resolved and carry no property
 id. If the settings cannot be resolved at all it throws, like a read: an outage is not an answer.
 
