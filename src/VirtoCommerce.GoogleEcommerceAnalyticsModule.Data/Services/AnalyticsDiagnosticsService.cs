@@ -356,6 +356,9 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             CompatibilityFilter = Compatibility.Incompatible,
         };
 
+        // Dropped, not refused — unlike a read's dimension filter, which throws. A compatibility probe carries no
+        // data isolation: an empty name here narrows nothing, so skipping it costs a caller a checked field at
+        // worst, while failing the stage would hide the answers about the fields they did name.
         foreach (var dimensionName in (shape.DimensionNames ?? []).Where(x => !string.IsNullOrEmpty(x)))
         {
             request.Dimensions.Add(new Dimension { Name = MapDimensionName(dimensionName, userDimensionNames) });

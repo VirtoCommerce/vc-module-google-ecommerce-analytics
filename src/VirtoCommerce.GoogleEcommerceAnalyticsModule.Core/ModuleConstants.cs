@@ -11,7 +11,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
             {
                 public const string Access = "googleanalytics:access";
 
-                public static string[] AllPermissions { get; } = { Access };
+                public static string[] AllPermissions { get; } = [Access];
             }
         }
 
@@ -36,7 +36,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
             public const string IsSalesRep = "is_sales_rep";
             public const string SessionKind = "session_kind";
 
-            public static string[] AllNames { get; } = { ContactId, OrganizationId, OrganizationName, IsSalesRep, SessionKind };
+            public static string[] AllNames { get; } = [ContactId, OrganizationId, OrganizationName, IsSalesRep, SessionKind];
         }
 
         public static class Dimensions
@@ -71,7 +71,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
             public const string Realtime = "realtime";
             public const string ProcessedData = "processedData";
 
-            public static string[] AllStages { get; } = { Configuration, Credentials, ApiAccess, CustomDimensions, ReportCompatibility, Realtime, ProcessedData };
+            public static string[] AllStages { get; } = [Configuration, Credentials, ApiAccess, CustomDimensions, ReportCompatibility, Realtime, ProcessedData];
         }
 
         public static class DiagnosticsStatuses

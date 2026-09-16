@@ -32,6 +32,7 @@ public class AnalyticsService : IAnalyticsService
 
     private const string SearchOperation = "events search";
     private const string SummariesOperation = "event summaries";
+    private const string ConfigurationOperation = "configuration check";
 
     private readonly IAnalyticsSettingsResolver _settingsResolver;
     private readonly IPlatformMemoryCache _platformMemoryCache;
@@ -52,20 +53,25 @@ public class AnalyticsService : IAnalyticsService
 
     protected virtual TimeSpan FailureCacheTtl => TimeSpan.FromSeconds(60);
 
-    // A question, not a read: the caller is asking whether reading would work at all, so a store that cannot
-    // report is the answer rather than a failure.
+    // A question, not a read: "can this store report at all?". `false` therefore means exactly one thing — the
+    // settings resolved and carry no property id. A resolver that FAILED has not answered the question, and
+    // saying "no" would put an outage back in the same bucket as "not configured", which is the conflation the
+    // read path exists to remove.
     public virtual async Task<bool> IsConfiguredAsync(string storeId)
     {
+        AnalyticsDataApiSettings settings;
+
         try
         {
-            var settings = await _settingsResolver.ResolveAsync(storeId);
-            return settings.IsConfigured;
+            settings = await _settingsResolver.ResolveAsync(storeId);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to resolve Google Analytics Data API settings for store {StoreId}", storeId);
-            return false;
+            LogFailure(ConfigurationOperation, storeId, ex);
+            throw CreateReadException(ConfigurationOperation, storeId);
         }
+
+        return settings.IsConfigured;
     }
 
     public virtual async Task<AnalyticsEventSearchResult> SearchEventsAsync(AnalyticsEventSearchCriteria criteria)
@@ -110,8 +116,27 @@ public class AnalyticsService : IAnalyticsService
         where T : AnalyticsEventCriteriaBase
     {
         ArgumentNullException.ThrowIfNull(criteria);
+        ValidateCriteria(criteria);
 
         return WithNormalizedDates(criteria);
+    }
+
+    // Every refusal a caller can fix by changing its own arguments belongs here, ahead of the configuration and
+    // the cache: the data source refuses the same two again, but only after the entry that would cache the answer.
+    protected virtual void ValidateCriteria(AnalyticsEventCriteriaBase criteria)
+    {
+        AnalyticsFilterBuilder.ValidateDimensionFilters(criteria.DimensionFilters, nameof(criteria));
+
+        // Only a search carries extra dimension names; a summary can still reach the item scope through a filter.
+        var dimensionNames = (criteria as AnalyticsEventSearchCriteria)?.DimensionNames;
+
+        if (criteria.EventNames?.Count > 1 &&
+            AnalyticsFilterBuilder.HasItemDimensions(dimensionNames, criteria.DimensionFilters))
+        {
+            throw new ArgumentException(
+                "An item-scoped read cannot be narrowed to more than one event name: its rows carry no event name to tell them apart.",
+                nameof(criteria));
+        }
     }
 
     protected virtual async Task<T> GetOrCreateAsync<T>(

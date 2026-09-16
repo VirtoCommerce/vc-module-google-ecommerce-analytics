@@ -132,7 +132,8 @@ response stay in this module's log, because a consumer cannot know how far its o
 
 Only the third step is cached. The criteria and the configuration are re-checked on every call, so a store
 configured a minute after a failed read reports at once instead of after the TTL. `IsConfiguredAsync` is a
-question rather than a read, and answers `false` instead of throwing.
+question rather than a read, and its `false` means exactly one thing — the settings resolved and carry no property
+id. If the settings cannot be resolved at all it throws, like a read: an outage is not an answer.
 
 How to degrade is the consumer's decision: catch `AnalyticsException`, show your own unavailable state, and keep
 "reporting is broken" distinguishable from "this customer did nothing".

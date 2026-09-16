@@ -47,15 +47,78 @@ public class AnalyticsServiceTests
         Assert.Equal(expected, await service.IsConfiguredAsync(StoreId));
     }
 
+    // `false` has to mean exactly "resolved, no property id". A resolver that failed has not answered the
+    // question, and answering "no" would put an outage back in the same bucket as "not configured".
     [Fact]
-    public async Task IsConfiguredAsync_ResolverThrows_ReturnsFalse()
+    public async Task IsConfiguredAsync_ResolverThrows_ThrowsRatherThanReportingUnconfigured()
     {
         _settingsResolverMock
             .Setup(x => x.ResolveAsync(It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("boom"));
+            .ThrowsAsync(new InvalidOperationException("the store service is down"));
         var service = CreateService();
 
-        Assert.False(await service.IsConfiguredAsync(StoreId));
+        var failure = await Assert.ThrowsAsync<AnalyticsException>(() => service.IsConfiguredAsync(StoreId));
+
+        Assert.DoesNotContain("store service", failure.Message);
+    }
+
+    // Step 1, and the point of it being step 1: a caller-caused refusal never reaches the configuration or the
+    // cache, so fixing the criteria is answered at once rather than after the failure TTL.
+    [Fact]
+    public async Task SearchEventsAsync_DimensionFilterWithoutValues_ThrowsBeforeResolvingSettings()
+    {
+        var service = CreateService();
+
+        var criteria = CreateSearchCriteria();
+        criteria.DimensionFilters =
+        [
+            new AnalyticsDimensionFilter { DimensionName = ModuleConstants.UserDimensions.OrganizationId, Values = [] },
+        ];
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.SearchEventsAsync(criteria));
+        _settingsResolverMock.Verify(x => x.ResolveAsync(It.IsAny<string>()), Times.Never);
+        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task SearchEventsAsync_DimensionFilterWithoutName_ThrowsBeforeResolvingSettings(string dimensionName)
+    {
+        var service = CreateService();
+
+        var criteria = CreateSearchCriteria();
+        criteria.DimensionFilters = [new AnalyticsDimensionFilter { DimensionName = dimensionName, Values = ["org1"] }];
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.SearchEventsAsync(criteria));
+        _settingsResolverMock.Verify(x => x.ResolveAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SearchEventsAsync_ItemScopeWithSeveralEventNames_ThrowsBeforeResolvingSettings()
+    {
+        var service = CreateService();
+
+        var criteria = CreateSearchCriteria();
+        criteria.EventNames = [ModuleConstants.EventNames.ViewItem, ModuleConstants.EventNames.AddToCart];
+        criteria.DimensionNames = [ModuleConstants.Dimensions.ItemId];
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.SearchEventsAsync(criteria));
+        _settingsResolverMock.Verify(x => x.ResolveAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    // A summary carries no DimensionNames, so a filter is the only way it reaches the item scope.
+    [Fact]
+    public async Task GetEventSummariesAsync_ItemScopedFilterWithSeveralEventNames_ThrowsBeforeResolvingSettings()
+    {
+        var service = CreateService();
+
+        var criteria = CreateSummaryCriteria(ModuleConstants.EventNames.ViewItem, ModuleConstants.EventNames.AddToCart);
+        criteria.DimensionFilters = [new AnalyticsDimensionFilter { DimensionName = ModuleConstants.Dimensions.ItemId, Values = ["SKU-1"] }];
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetEventSummariesAsync(criteria));
+        _settingsResolverMock.Verify(x => x.ResolveAsync(It.IsAny<string>()), Times.Never);
     }
 
     // Step 1 of a Google call: the arguments, before anything loads configuration.

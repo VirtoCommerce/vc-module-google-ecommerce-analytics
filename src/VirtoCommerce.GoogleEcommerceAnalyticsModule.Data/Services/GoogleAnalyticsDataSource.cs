@@ -20,13 +20,6 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     private const string DefaultStartDate = "2015-08-14";
     private const string DefaultEndDate = "today";
 
-    private static readonly string[] ItemDimensionNames =
-    {
-        ModuleConstants.Dimensions.ItemId,
-        ModuleConstants.Dimensions.ItemName,
-        ModuleConstants.Dimensions.ItemListName,
-    };
-
     private readonly IGoogleAnalyticsReportClient _reportClient;
     private readonly ILogger<GoogleAnalyticsDataSource> _logger;
 
@@ -166,24 +159,12 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
             expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.Dimensions.EventName, query.EventNames));
         }
 
+        // Already checked at the service entry, before the cache could answer. Repeated here because this is the
+        // last place that can refuse an unscoped read reaching Google, and IAnalyticsDataSource has its own callers.
+        AnalyticsFilterBuilder.ValidateDimensionFilters(query.DimensionFilters, nameof(query));
+
         foreach (var filter in query.DimensionFilters ?? [])
         {
-            // Dropped rather than refused, either of these widens the read instead of narrowing it — and these
-            // filters carry the consumer's data isolation. Last place that can still refuse one.
-            if (string.IsNullOrWhiteSpace(filter?.DimensionName))
-            {
-                throw new ArgumentException(
-                    "A dimension filter carries no dimension name, which would leave the read unscoped.",
-                    nameof(query));
-            }
-
-            if (filter.Values.IsNullOrEmpty())
-            {
-                throw new ArgumentException(
-                    $"Dimension filter '{filter.DimensionName}' carries no values, which would leave the read unscoped.",
-                    nameof(query));
-            }
-
             expressions.Add(AnalyticsFilterBuilder.CreateInListExpression(MapDimensionName(filter.DimensionName), filter.Values));
         }
 
@@ -258,8 +239,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
 
     protected virtual bool HasItemDimensions(AnalyticsDataQuery query)
     {
-        return query.DimensionNames?.Any(x => ItemDimensionNames.Contains(x)) == true
-            || query.DimensionFilters?.Any(x => ItemDimensionNames.Contains(x.DimensionName)) == true;
+        return AnalyticsFilterBuilder.HasItemDimensions(query.DimensionNames, query.DimensionFilters);
     }
 
     protected static bool IsCountSort(AnalyticsDataQuery query)
