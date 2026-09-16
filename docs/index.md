@@ -118,10 +118,11 @@ an answer a consumer will act on and "no data" would become the module's single 
 checks three things in order — the criteria, then the store's configuration, then Google — and each of them can
 refuse:
 
-* a criteria with no store id, a dimension filter with no name or no values, or an item-scoped read narrowed to
-  more than one event name — `ArgumentException`, raised before anything is loaded or cached;
-* a store with no property id — `AnalyticsException`. Not being configured is a configuration error, not a state
-  to be reported as "no activity";
+* a dimension filter with no name or no values, or an item-scoped read narrowed to more than one event name —
+  `ArgumentException`, raised before anything is loaded or cached. A criteria with **no store id is not an error**:
+  it resolves the global settings, which is the documented store → global → default fallback;
+* no property id configured, for the store or globally — `AnalyticsException`. Not being configured is a
+  configuration error, not a state to be reported as "no activity";
 * anything Google refuses — a property that does not exist, a credential without access, a quota rejection —
   `AnalyticsException`.
 

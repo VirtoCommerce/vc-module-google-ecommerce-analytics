@@ -103,15 +103,13 @@ public class AnalyticsService : IAnalyticsService
 
     // Step 1 of a Google call: the arguments. Nothing here loads configuration or reaches the cache, so a caller
     // that fixes its criteria is answered at once rather than after a TTL.
+    //
+    // StoreId is deliberately NOT required: an absent one resolves the global settings, which is the documented
+    // store -> global -> default fallback and the shape a consumer uses for an unnarrowed read.
     protected virtual T PrepareCriteria<T>(T criteria)
         where T : AnalyticsEventCriteriaBase
     {
         ArgumentNullException.ThrowIfNull(criteria);
-
-        if (string.IsNullOrWhiteSpace(criteria.StoreId))
-        {
-            throw new ArgumentException("A store id is required: it is what selects the GA4 property to report on.", nameof(criteria));
-        }
 
         return WithNormalizedDates(criteria);
     }
@@ -161,9 +159,9 @@ public class AnalyticsService : IAnalyticsService
 
         if (!settings.IsConfigured)
         {
-            // Not a state to answer with an empty result: a store with no property id cannot report at all, and
-            // a consumer handed "no data" would present that as fact.
-            throw new AnalyticsException($"Google Analytics reporting is not configured for store '{storeId}'.");
+            // Not a state to answer with an empty result: no property id means nothing can be reported at all,
+            // and a consumer handed "no data" would present that as fact.
+            throw new AnalyticsException($"Google Analytics reporting is not configured{DescribeStore(storeId)}.");
         }
 
         return settings;
@@ -200,7 +198,13 @@ public class AnalyticsService : IAnalyticsService
     // because it cannot know how far its own error surface travels. The cause is in the log line above.
     protected virtual AnalyticsException CreateReadException(string operation, string storeId)
     {
-        return new AnalyticsException($"Google Analytics {operation} failed for store '{storeId}'.");
+        return new AnalyticsException($"Google Analytics {operation} failed{DescribeStore(storeId)}.");
+    }
+
+    // An absent store id is a legitimate unnarrowed read, not a missing value, so it must not read as "store ''".
+    private static string DescribeStore(string storeId)
+    {
+        return string.IsNullOrEmpty(storeId) ? string.Empty : $" for store '{storeId}'";
     }
 
     // The request carries dates, so criteria differing only in time of day are one Google query — but

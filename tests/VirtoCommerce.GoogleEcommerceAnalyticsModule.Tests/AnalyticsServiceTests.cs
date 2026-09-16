@@ -59,19 +59,60 @@ public class AnalyticsServiceTests
     }
 
     // Step 1 of a Google call: the arguments, before anything loads configuration.
+    [Fact]
+    public async Task SearchEventsAsync_NullCriteria_Throws()
+    {
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => service.SearchEventsAsync(null));
+        _settingsResolverMock.Verify(x => x.ResolveAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    // An unnarrowed read is a supported shape, not a missing argument: it resolves the global settings, which is
+    // the documented store -> global -> default fallback. A consumer whose own store argument is optional reaches
+    // this on every call that omits it.
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("   ")]
-    public async Task SearchEventsAsync_WithoutStoreId_ThrowsBeforeResolvingSettings(string storeId)
+    public async Task SearchEventsAsync_WithoutStoreId_ReadsAgainstTheGlobalProperty(string storeId)
     {
+        AnalyticsDataQuery capturedQuery = null;
+        _settingsResolverMock
+            .Setup(x => x.ResolveAsync(storeId))
+            .ReturnsAsync(new AnalyticsDataApiSettings { PropertyId = PropertyId });
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .Callback((AnalyticsDataQuery query) => capturedQuery = query)
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
         var service = CreateService();
 
         var criteria = CreateSearchCriteria();
         criteria.StoreId = storeId;
 
-        await Assert.ThrowsAsync<ArgumentException>(() => service.SearchEventsAsync(criteria));
-        _settingsResolverMock.Verify(x => x.ResolveAsync(It.IsAny<string>()), Times.Never);
+        var result = await service.SearchEventsAsync(criteria);
+
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal(PropertyId, capturedQuery.PropertyId);
+    }
+
+    // The unnarrowed read still needs a property: with nothing configured globally either, it is a configuration
+    // error like any other rather than an empty answer.
+    [Fact]
+    public async Task SearchEventsAsync_WithoutStoreId_NothingConfiguredGlobally_Throws()
+    {
+        _settingsResolverMock
+            .Setup(x => x.ResolveAsync(null))
+            .ReturnsAsync(new AnalyticsDataApiSettings());
+        var service = CreateService();
+
+        var criteria = CreateSearchCriteria();
+        criteria.StoreId = null;
+
+        var failure = await Assert.ThrowsAsync<AnalyticsException>(() => service.SearchEventsAsync(criteria));
+
+        // Not "for store ''": an absent store id is a shape, not a missing value.
+        Assert.DoesNotContain("''", failure.Message);
+        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
     }
 
     // "Not configured" is a configuration error, not an answer: a consumer handed an empty result would present
