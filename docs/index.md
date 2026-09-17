@@ -129,6 +129,12 @@ The exception names the store and the operation and nothing else. The property i
 response stay in this module's log, because a consumer cannot know how far its own error surface travels; run
 `POST api/googleanalytics/{storeId}/diagnostics` to see the cause.
 
+A summary read fans out — one totals read plus a newest-occurrence probe per event name — and **any** of
+them failing fails the whole summary. An earlier design isolated a failed probe and returned the totals with a
+null `LastOccurredAt`; that was reversed deliberately, because a null there reads as "this event never happened"
+and a consumer presents it as fact. The cost of the current shape is narrower but real: one transient probe
+failure costs the whole summary until the failure entry expires, where before it cost a single field.
+
 Only the third step is cached — a failure included, for a fixed 60 seconds, so a misconfigured property cannot
 burn quota on a hot page. The criteria and the configuration are re-checked on every call, so a store configured
 a minute after a failed read reports at once instead of after the TTL. `IsConfiguredAsync` is a
