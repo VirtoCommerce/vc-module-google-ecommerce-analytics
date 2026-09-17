@@ -12,8 +12,14 @@
     <SonarQubeTestProject>false</SonarQubeTestProject>
   </PropertyGroup>
   <ItemGroup>
-    
+    <PackageReference Include="Google.Analytics.Data.V1Beta" Version="2.0.0-beta10" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
     <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.1005.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- AnalyticsFilterBuilder is internal and carries the dimension-filter guard every read depends on;
+         the test project asserts it directly rather than only through a data source. -->
+    <InternalsVisibleTo Include="VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core\VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.csproj" />

@@ -1,1 +1,15 @@
+Microsoft.Bcl.AsyncInterfaces.dll
+Newtonsoft.Json.dll
+Serilog.dll
+System.CodeDom.dll
+System.IO.Abstractions.dll
+System.Management.dll
+Testably.Abstractions.FileSystem.Interface.dll
+TestableIO.System.IO.Abstractions.dll
+TestableIO.System.IO.Abstractions.Wrappers.dll
 TimeZoneConverter.dll
+VirtoCommerce.CoreModule.Core.dll
+VirtoCommerce.NotificationsModule.Core.dll
+VirtoCommerce.Platform.Core.dll
+VirtoCommerce.Seo.Core.dll
+VirtoCommerce.StoreModule.Core.dll

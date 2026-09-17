@@ -16,6 +16,16 @@
       "GoogleAnalyticsUrl": {
         "title": "Google Analytics ダッシュボード URL",
         "description": "アプリ メニューからリダイレクトするための Google Analytics ダッシュボード URL"
+      },
+      "DataApi": {
+        "PropertyId": {
+          "title": "GA4 プロパティ ID",
+          "description": "Data API でレポートを読み取るための Google Analytics 4 の数値プロパティ ID（G-XXXXXXX の測定 ID ではありません）"
+        },
+        "CacheTtlMinutes": {
+          "title": "レポートキャッシュの有効期間（分）",
+          "description": "ストアごとに Google Analytics のレポート結果をキャッシュする時間"
+        }
       }
     }
   }

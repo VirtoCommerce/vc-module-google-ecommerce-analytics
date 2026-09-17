@@ -16,6 +16,16 @@
       "GoogleAnalyticsUrl": {
         "title": "URL panelu Google Analytics",
         "description": "URL panelu Google Analytics do przekierowania z menu aplikacji"
+      },
+      "DataApi": {
+        "PropertyId": {
+          "title": "Identyfikator usługi GA4",
+          "description": "Numeryczny identyfikator usługi Google Analytics 4 do odczytu raportów przez Data API (nie identyfikator pomiaru G-XXXXXXX)"
+        },
+        "CacheTtlMinutes": {
+          "title": "Czas życia pamięci podręcznej raportów, minuty",
+          "description": "Jak długo wyniki raportów Google Analytics są przechowywane w pamięci podręcznej dla sklepu"
+        }
       }
     }
   }
