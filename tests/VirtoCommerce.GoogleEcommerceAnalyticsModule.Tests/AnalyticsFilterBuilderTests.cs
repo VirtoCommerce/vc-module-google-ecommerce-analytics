@@ -9,8 +9,7 @@ using Xunit;
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests;
 
 // Every dimension filter a read sends to Google is built here, including the ones carrying a consumer's data
-// isolation — and the two guards below are what the service and the data source both call. Reached only
-// indirectly they were pinned by whichever caller happened to exercise them.
+// isolation, and both guards below have two callers. Reached only indirectly, they were pinned by neither.
 public class AnalyticsFilterBuilderTests
 {
     private const string ParamName = "criteria";
@@ -58,8 +57,7 @@ public class AnalyticsFilterBuilderTests
         Assert.Contains(ModuleConstants.UserDimensions.OrganizationId, exception.Message);
     }
 
-    // No filters at all is a legitimate unscoped read — the guard refuses a filter that pretends to scope and
-    // does not, not the absence of one.
+    // The guard refuses a filter that pretends to scope and does not, not the absence of one.
     [Fact]
     public void ValidateDimensionFilters_NullOrEmptyList_DoesNotThrow()
     {
@@ -130,8 +128,7 @@ public class AnalyticsFilterBuilderTests
         Assert.False(AnalyticsFilterBuilder.HasItemDimensions(null, CreateFilters((AnalyticsDimensionFilter)null)));
     }
 
-    // GA4 field names are case-sensitive, so the prefix is applied on an exact match only: a mis-cased name is
-    // passed through and rejected by the API rather than silently turned into a different field.
+    // GA4 field names are case-sensitive, so the prefix is applied on an exact match only.
     [Fact]
     public void MapDimensionName_KnownUserDimension_GetsThePrefix()
     {
