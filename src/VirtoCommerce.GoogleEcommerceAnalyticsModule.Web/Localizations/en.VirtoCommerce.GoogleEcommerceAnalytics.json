@@ -16,6 +16,16 @@
       "GoogleAnalyticsUrl": {
         "title": "Google Analytics dashboard URL",
         "description": "Provide the URL for the Google Analytics dashboard for redirecting from App Menu"
+      },
+      "DataApi": {
+        "PropertyId": {
+          "title": "GA4 property Id",
+          "description": "Numeric Google Analytics 4 property ID used to read reports through the Data API (not the G-XXXXXXX measurement ID)"
+        },
+        "CacheTtlMinutes": {
+          "title": "Report cache lifetime, minutes",
+          "description": "How long Google Analytics report results are cached per store"
+        }
       }
     }
   }

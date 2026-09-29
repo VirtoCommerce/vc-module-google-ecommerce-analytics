@@ -68,6 +68,95 @@ Google Analytics 4 module defines the following store settings:
 1. **GoogleAnalytics4.MeasurementId** - Google Analytics 4 Measurement ID (e.g., `G-XXXXXXXXXX`)
 1. **GoogleAnalytics4.GTMContainerId** - Google Tag Manager Container ID (e.g., `GTM-XXXXXXX`)
 
+### Reporting (Data API) settings
+
+These settings are **not public** — they are never returned by the anonymous `GET /api/googleanalytics/{storeId}`
+endpoint. They configure *reading* from GA4 (see [Reading analytics data](#reading-analytics-data)), and are only
+needed if another module consumes `IAnalyticsService`.
+
+1. **GoogleAnalytics4.DataApi.PropertyId** - the **numeric** GA4 property id to report on (GA4 Admin > Property
+   Settings > Property Details), e.g. `123456789`. This is *not* the `G-XXXXXXXXXX` measurement id.
+1. **GoogleAnalytics4.DataApi.CacheTtlMinutes** - how long a successful report is cached per store and query
+   (default `60`). Data API tokens are metered per property per day, so caching is a quota requirement rather than
+   tuning. Set it to **`0`** to read Google on every call, and note that the platform's
+   own `Caching:CacheEnabled=false` is honoured here too - both are for diagnosing stale reporting data, not for
+   normal operation. The cache key covers the **whole** query - store, event names, dimensions, filters, sort and
+   paging as well as dates - together with the resolved property id, so re-pointing a store at another property
+   takes effect at once; `from`/`to` are rounded to the day, so two reads differing only in time of day share one
+   entry. Failed reads are cached too, briefly - see [When a read fails](#when-a-read-fails).
+
+## Reading analytics data
+
+Besides tagging, the module can **read** GA4 through the Data API (`runReport`) and expose the result in-process as
+`IAnalyticsService` (events, dimensions, filters and date ranges — no domain concepts). It has no GraphQL surface;
+consumers build their own fields on top of it.
+
+### Prerequisites
+
+1. Set **GoogleAnalytics4.DataApi.PropertyId** for the store.
+1. Enable the **Google Analytics Data API** (`analyticsdata.googleapis.com`) in the Google Cloud project the
+   credential belongs to.
+1. Provide credentials through **Application Default Credentials** — there is no credential setting. In a cluster
+   this is workload identity or the metadata server; with a key file it is `GOOGLE_APPLICATION_CREDENTIALS`. For
+   local development, the login must include the analytics scope (a plain `gcloud auth application-default login`
+   does **not**, and every call then fails with `PermissionDenied`):
+
+   ```sh
+   gcloud auth application-default login --scopes="https://www.googleapis.com/auth/analytics.readonly,https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
+   gcloud auth application-default set-quota-project <your-gcp-project>
+   ```
+
+1. Grant the credential's principal the **Viewer** role on the GA4 property (GA4 Admin > Property access management).
+1. Register any **user-scoped custom dimensions** a consumer filters on in GA4 Admin > Custom definitions.
+   Registration is **not retroactive** — only events collected after it are reportable.
+
+### When a read fails
+
+`IAnalyticsService` reads **throw**; they never answer a failure with an empty result, because an empty result is
+an answer a consumer will act on and "no data" would become the module's single reply to every question. A read
+checks three things in order — the criteria, then the store's configuration, then Google — and each of them can
+refuse:
+
+* a dimension filter with no name or no values, or an item-scoped read narrowed to more than one event name —
+  `ArgumentException`, raised before anything is loaded or cached. A criteria with **no store id is not an error**:
+  it resolves the global settings, which is the documented store → global → default fallback;
+* no property id configured, for the store or globally — `AnalyticsException`. Not being configured is a
+  configuration error, not a state to be reported as "no activity";
+* anything Google refuses — a property that does not exist, a credential without access, a quota rejection —
+  `AnalyticsException`.
+
+The exception names the store and the operation and nothing else. The property id, the settings and Google's own
+response stay in this module's log, because a consumer cannot know how far its own error surface travels; run
+`POST api/googleanalytics/{storeId}/diagnostics` to see the cause.
+
+A summary read fans out — one totals read plus a newest-occurrence probe per event name — and **any** of
+them failing fails the whole summary. An earlier design isolated a failed probe and returned the totals with a
+null `LastOccurredAt`; that was reversed deliberately, because a null there reads as "this event never happened"
+and a consumer presents it as fact. The cost of the current shape is narrower but real: one transient probe
+failure costs the whole summary until the failure entry expires, where before it cost a single field.
+
+Only the third step is cached — a failure included, for a fixed 60 seconds, so a misconfigured property cannot
+burn quota on a hot page. The criteria and the configuration are re-checked on every call, so a store configured
+a minute after a failed read reports at once instead of after the TTL. `IsConfiguredAsync` is a
+question rather than a read, and its `false` means exactly one thing — the settings resolved and carry no property
+id. If the settings cannot be resolved at all it throws, like a read: an outage is not an answer.
+
+How to degrade is the consumer's decision: catch `AnalyticsException`, show your own unavailable state, and keep
+"reporting is broken" distinguishable from "this customer did nothing".
+
+### What this source can and cannot answer
+
+* GA4 processes events for up to **24-48 hours** before `runReport` can see them. "No rows" right after tagging is
+  the expected state, not a fault.
+* Reports are **aggregates**: the finest time dimension is `dateHour`, so every timestamp is an hour-bucket start,
+  never an event time. GA4 reports those buckets in the **property's** reporting timezone; the module converts them
+  to UTC using the zone GA returns with each response, so `OccurredAt` is a real UTC instant. The `from`/`to` bounds
+  of a query are still sent as UTC dates, so a range *edge* can differ by up to a day from the property's calendar.
+* Coverage is a **sample**, not a record — ad blockers and consent mode mean GA sees a subset of real activity.
+* GA4 suppresses rows for small cohorts when **Google Signals** is enabled, which is exactly the shape of a
+  single-customer query. A property used for per-customer reporting typically needs Signals off.
+
+
 ## Rest API
 
 ### Get Google Analytics Settings 
@@ -90,6 +179,42 @@ Response:
 
 ### Update Google Analytics Settings
 Use Store API to provide management above Google Analytics Settings. 
+
+### Run connection diagnostics
+
+Endpoint: `/api/googleanalytics/{storeId}/diagnostics`
+
+Method: `POST`, permission: `googleanalytics:access`
+
+Runs a staged check of the reporting setup and returns one row per stage — `configuration`, `credentials`,
+`apiAccess`, `customDimensions`, `reportCompatibility`, `realtime`, `processedData` — each with a `status` of
+`Passed`, `Warning`, `Failed` or `Skipped`, a message naming the fix, and an optional `detail`. A failure in one of
+the first three stages marks the rest `Skipped`, so the response shape never varies. Diagnostics bypasses the
+response cache and reads Google directly.
+
+Key material never reaches the response: the `credentials` stage reports only the *kind* of credential in use.
+`detail`, however, forwards the underlying error verbatim, and Google's own messages can name the environment
+around the credential — the path in `GOOGLE_APPLICATION_CREDENTIALS`, or the Cloud project behind a disabled
+API. The endpoint is gated on `googleanalytics:access` for that reason.
+
+The request body is optional; every field defaults, so `{}` runs a bare connectivity check:
+
+```jsonc
+{
+  // user-scoped custom dimensions to verify, WITHOUT the customUser: prefix
+  "userDimensionNames": ["contact_id", "organization_id", "session_kind"],
+  "eventNames": ["search", "view_item", "login"],   // events you expect to be collected
+  "reports": [{                                     // report shapes to compatibility-check
+    "name": "searchTerms",
+    "dimensionNames": ["eventName", "dateHour", "searchTerm"],
+    "metricName": "eventCount",
+    "eventNames": ["search", "view_search_results"]
+  }],
+  "includeLiveData": true                           // false skips the two data stages, saving Data API quota
+}
+```
+
+Empty results are reported as `Warning`, not `Failed` — "no data yet" is a state, not a fault.
 
 ## Troubleshoting 
 [Enable debug mode](https://support.google.com/analytics/answer/7201382) so you can see events in realtime and more easily troubleshoot issues.
