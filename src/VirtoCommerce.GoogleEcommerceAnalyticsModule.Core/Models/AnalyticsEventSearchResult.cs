@@ -9,6 +9,9 @@ public class AnalyticsEventSearchResult : ICloneable
 {
     public int TotalCount { get; set; }
 
+    // Every matching row's Count summed, not only the returned page's: TotalCount counts rows, this counts events.
+    public int TotalEventCount { get; set; }
+
     public IList<AnalyticsEvent> Events { get; set; } = [];
 
     public virtual object Clone()

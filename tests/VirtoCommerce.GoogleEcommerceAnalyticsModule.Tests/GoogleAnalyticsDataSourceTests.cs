@@ -50,6 +50,43 @@ public class GoogleAnalyticsDataSourceTests
     }
 
     [Fact]
+    public async Task GetRowsAsync_AsksGoogleForTheMetricTotal()
+    {
+        var dataSource = CreateDataSource();
+
+        await dataSource.GetRowsAsync(new AnalyticsDataQuery { PropertyId = "123456", Take = 5 });
+
+        Assert.Contains(MetricAggregation.Total, _capturedRequest.MetricAggregations);
+    }
+
+    // The count-only read is the one a badge makes, and it maps nothing else — the total must not be skipped with
+    // the rows.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(20)]
+    public async Task GetRowsAsync_MapsTheMetricTotalBesideTheRowCount(int take)
+    {
+        var response = new RunReportResponse { RowCount = 3 };
+        response.Totals.Add(new Row { MetricValues = { new MetricValue { Value = "17" } } });
+        var dataSource = CreateDataSource(response);
+
+        var result = await dataSource.GetRowsAsync(new AnalyticsDataQuery { PropertyId = "123456", Take = take });
+
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(17, result.TotalEventCount);
+    }
+
+    [Fact]
+    public async Task GetRowsAsync_NoTotalsRow_CountsZeroEvents()
+    {
+        var dataSource = CreateDataSource(new RunReportResponse());
+
+        var result = await dataSource.GetRowsAsync(new AnalyticsDataQuery { PropertyId = "123456", Take = 0 });
+
+        Assert.Equal(0, result.TotalEventCount);
+    }
+
+    [Fact]
     public async Task GetRowsAsync_BuildsRunReportRequest()
     {
         var dataSource = CreateDataSource();

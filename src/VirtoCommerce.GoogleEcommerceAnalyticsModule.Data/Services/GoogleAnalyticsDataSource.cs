@@ -104,6 +104,9 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
             Offset = query.Skip,
         };
 
+        // Totalled by Google over every matching row, so the event count needs no second read and ignores paging.
+        request.MetricAggregations.Add(MetricAggregation.Total);
+
         request.DateRanges.Add(new DateRange
         {
             StartDate = query.From?.ToString(DateFormat, CultureInfo.InvariantCulture) ?? DefaultStartDate,
@@ -171,6 +174,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     {
         var result = AbstractTypeFactory<AnalyticsEventSearchResult>.TryCreateInstance();
         result.TotalCount = response.RowCount;
+        result.TotalEventCount = ParseMetricTotal(response);
 
         if (query.Take <= 0)
         {
@@ -198,6 +202,14 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
         }
 
         return result;
+    }
+
+    // A read that matched nothing may come back without a totals row at all, which is a total of 0.
+    protected virtual int ParseMetricTotal(RunReportResponse response)
+    {
+        var total = response.Totals.FirstOrDefault()?.MetricValues.FirstOrDefault()?.Value;
+
+        return int.TryParse(total, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : 0;
     }
 
     protected virtual void MapDimensionValue(AnalyticsEvent analyticsEvent, string dimensionName, string value, TimeZoneInfo timeZone)

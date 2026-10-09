@@ -96,6 +96,10 @@ Besides tagging, the module can **read** GA4 through the Data API (`runReport`) 
 `IAnalyticsService` (events, dimensions, filters and date ranges — no domain concepts). It has no GraphQL surface;
 consumers build their own fields on top of it.
 
+A search answers two different counts, both for everything it matched rather than for the page it returned:
+`TotalCount` is the number of **rows** (what a pager needs), and `TotalEventCount` is the metric summed over all of
+them — events, or item views for an item-scoped read — so a row that stands for three searches counts three.
+
 ### Prerequisites
 
 1. Set **GoogleAnalytics4.DataApi.PropertyId** for the store.
