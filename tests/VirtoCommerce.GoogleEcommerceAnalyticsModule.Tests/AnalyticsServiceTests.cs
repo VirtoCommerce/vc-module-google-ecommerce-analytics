@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -372,55 +373,39 @@ public class AnalyticsServiceTests
     }
 
     [Fact]
-    public async Task GetEventSummariesAsync_AggregatesPerRequestedEventName()
+    public async Task GetEventSummariesAsync_ReportsEachNamesTotalAndNewestBucket()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(
-                ("search", To.AddHours(-2), 2),
-                ("search", To, 3),
-                ("login", To.AddHours(-1), 5)));
+        SetupSummaryRead(ModuleConstants.EventNames.Search, total: 5, newest: To);
+        SetupSummaryRead(ModuleConstants.EventNames.Login, total: 7, newest: To.AddHours(-1));
+        SetupSummaryRead(ModuleConstants.EventNames.SignUp, total: 0, newest: null);
         var service = CreateGoogleConfiguredService();
 
-        var criteria = CreateSummaryCriteria(
+        var summaries = await service.GetEventSummariesAsync(CreateSummaryCriteria(
             ModuleConstants.EventNames.Search,
             ModuleConstants.EventNames.Login,
-            ModuleConstants.EventNames.SignUp);
-        var summaries = await service.GetEventSummariesAsync(criteria);
+            ModuleConstants.EventNames.SignUp));
 
-        Assert.Equal(3, summaries.Count);
+        // In the order asked for, although the reads finish in any order.
+        Assert.Equal(
+            [ModuleConstants.EventNames.Search, ModuleConstants.EventNames.Login, ModuleConstants.EventNames.SignUp],
+            summaries.Select(x => x.EventName));
 
-        var search = summaries.First(x => x.EventName == ModuleConstants.EventNames.Search);
-        Assert.Equal(5, search.TotalCount);
-        Assert.Equal(To, search.LastOccurredAt);
-
-        var login = summaries.First(x => x.EventName == ModuleConstants.EventNames.Login);
-        Assert.Equal(5, login.TotalCount);
-        Assert.Equal(To.AddHours(-1), login.LastOccurredAt);
-
-        var signUp = summaries.First(x => x.EventName == ModuleConstants.EventNames.SignUp);
-        Assert.Equal(0, signUp.TotalCount);
-        Assert.Null(signUp.LastOccurredAt);
+        Assert.Equal(5, summaries[0].TotalCount);
+        Assert.Equal(To, summaries[0].LastOccurredAt);
+        Assert.Equal(7, summaries[1].TotalCount);
+        Assert.Equal(To.AddHours(-1), summaries[1].LastOccurredAt);
+        Assert.Equal(0, summaries[2].TotalCount);
+        Assert.Null(summaries[2].LastOccurredAt);
     }
 
-    // Keeping the totals would answer "when did this last happen?" with a null that reads as "never".
+    // Keeping the other names would answer "when did this last happen?" with a null that reads as "never".
     [Fact]
-    public async Task GetEventSummariesAsync_OneProbeFails_ThrowsRatherThanReportNever()
+    public async Task GetEventSummariesAsync_OneReadFails_ThrowsRatherThanReportNever()
     {
-        var totals = CreateCountModeResult(("search", 3), ("login", 5));
-
+        SetupSummaryRead(ModuleConstants.EventNames.Search, total: 3, newest: To);
         _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.SortBy == ModuleConstants.SortBy.Count)))
-            .ReturnsAsync(totals);
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q =>
-                q.SortBy != ModuleConstants.SortBy.Count && q.EventNames.Contains(ModuleConstants.EventNames.Login))))
+            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.EventNames.Contains(ModuleConstants.EventNames.Login))))
             .ThrowsAsync(new InvalidOperationException("GA responded 429"));
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q =>
-                q.SortBy != ModuleConstants.SortBy.Count && q.EventNames.Contains(ModuleConstants.EventNames.Search))))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
-
         var service = CreateGoogleConfiguredService();
 
         await Assert.ThrowsAsync<AnalyticsException>(() => service.GetEventSummariesAsync(
@@ -430,15 +415,11 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task GetEventSummariesAsync_ReadsNarrowly_NeverTheWholeHourlySeries()
     {
-        // Concurrent, because the probes run in parallel; enqueue order still puts the awaited totals read first.
         var queries = new ConcurrentQueue<AnalyticsDataQuery>();
         _googleDataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .Callback<AnalyticsDataQuery>(queries.Enqueue)
-            .ReturnsAsync(CreateSearchResult(
-                ("search", To.AddHours(-2), 2),
-                ("search", To, 3),
-                ("login", To.AddHours(-1), 5)));
+            .ReturnsAsync(new AnalyticsEventSearchResult());
         var service = CreateGoogleConfiguredService();
 
         var criteria = CreateSummaryCriteria(
@@ -447,26 +428,63 @@ public class AnalyticsServiceTests
             ModuleConstants.EventNames.SignUp);
         await service.GetEventSummariesAsync(criteria);
 
-        // One totals read for all three names, then a newest-bucket probe only for the two that have events:
-        // sign_up totals zero, so nothing is asked about its last occurrence.
+        // One newest-bucket read per name, carrying the name's total; no separate totals read.
         var reads = queries.ToList();
         Assert.Equal(3, reads.Count);
-
-        var totals = reads[0];
-        Assert.Equal(ModuleConstants.SortBy.Count, totals.SortBy);
-        Assert.Equal(3, totals.Take);
-        Assert.Equal(criteria.EventNames, totals.EventNames);
-
-        var probes = reads.Skip(1).ToList();
-        Assert.All(probes, x => Assert.Equal(ModuleConstants.SortBy.Date, x.SortBy));
-        Assert.All(probes, x => Assert.Equal(1, x.Take));
-        // Unordered: the probes run concurrently.
+        Assert.All(reads, x => Assert.Equal(ModuleConstants.SortBy.Date, x.SortBy));
         Assert.Equal(
-            [ModuleConstants.EventNames.Login, ModuleConstants.EventNames.Search],
-            probes.Select(x => Assert.Single(x.EventNames)).OrderBy(x => x, StringComparer.Ordinal));
+            criteria.EventNames.OrderBy(x => x, StringComparer.Ordinal),
+            reads.Select(x => Assert.Single(x.EventNames)).OrderBy(x => x, StringComparer.Ordinal));
 
         // The point of the shape: no read is proportional to the number of hours in the range.
-        Assert.All(reads, x => Assert.True(x.Take <= 3));
+        Assert.All(reads, x => Assert.Equal(1, x.Take));
+    }
+
+    // The reads of a named summary need nothing from each other, so none may wait for another: two in a row is two
+    // timeouts in a row for the consumer's whole request.
+    [Fact]
+    public async Task GetEventSummariesAsync_NamedReads_StartTogether()
+    {
+        var started = 0;
+        var allStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .Returns(async () =>
+            {
+                if (Interlocked.Increment(ref started) == 3)
+                {
+                    allStarted.SetResult();
+                }
+
+                // A read that waited for another would never see the third one start.
+                await allStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                return new AnalyticsEventSearchResult();
+            });
+        var service = CreateGoogleConfiguredService();
+
+        await service.GetEventSummariesAsync(CreateSummaryCriteria(
+            ModuleConstants.EventNames.Search,
+            ModuleConstants.EventNames.Login,
+            ModuleConstants.EventNames.SignUp));
+
+        Assert.Equal(3, started);
+    }
+
+    [Fact]
+    public async Task GetEventSummariesAsync_NoNames_FindsTheNamesFirstThenReadsEach()
+    {
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.SortBy == ModuleConstants.SortBy.Count)))
+            .ReturnsAsync(CreateCountModeResult(("search", 3), ("login", 5)));
+        SetupSummaryRead(ModuleConstants.EventNames.Search, total: 3, newest: To);
+        SetupSummaryRead(ModuleConstants.EventNames.Login, total: 5, newest: To.AddHours(-1));
+        var service = CreateGoogleConfiguredService();
+
+        var summaries = await service.GetEventSummariesAsync(CreateSummaryCriteria());
+
+        Assert.Equal([ModuleConstants.EventNames.Search, ModuleConstants.EventNames.Login], summaries.Select(x => x.EventName));
+        Assert.Equal(5, summaries[1].TotalCount);
+        Assert.Equal(To.AddHours(-1), summaries[1].LastOccurredAt);
     }
 
     [Fact]
@@ -688,7 +706,23 @@ public class AnalyticsServiceTests
         };
     }
 
-    // Count mode carries no date; the probes are what fill it in.
+    // A summary's per-name read: Google's total over every bucket, and only the newest bucket as a row.
+    private void SetupSummaryRead(string eventName, int total, DateTime? newest)
+    {
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q =>
+                q.SortBy == ModuleConstants.SortBy.Date && q.EventNames.Contains(eventName))))
+            .ReturnsAsync(new AnalyticsEventSearchResult
+            {
+                TotalCount = newest == null ? 0 : 4,
+                TotalEventCount = total,
+                Events = newest == null
+                    ? []
+                    : [new AnalyticsEvent { EventName = eventName, OccurredAt = newest, Count = 2 }],
+            });
+    }
+
+    // Count mode carries no date: an unnamed summary takes only its event names from it.
     private static AnalyticsEventSearchResult CreateCountModeResult(params (string EventName, int Count)[] events)
     {
         return new AnalyticsEventSearchResult

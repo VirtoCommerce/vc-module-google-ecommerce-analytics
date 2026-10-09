@@ -17,14 +17,14 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 public class AnalyticsService : IAnalyticsService
 {
     // Count mode returns one row per event name, so a summary naming none is bounded by this — and so is the
-    // probe fan-out below. A summary over hundreds of names is a reporting question, not a feature read.
+    // per-name fan-out below. A summary over hundreds of names is a reporting question, not a feature read.
     private const int MaxEventNames = 50;
 
     // Date mode orders by dateHour descending, so the newest bucket is the first row.
-    private const int LatestBucketProbeSize = 1;
+    private const int LatestBucketSize = 1;
 
-    // The probes are independent, so they run together — capped, because GA4 limits concurrent requests.
-    private const int MaxProbeConcurrency = 4;
+    // The per-name reads are independent, so they run together — capped, because GA4 limits concurrent requests.
+    private const int MaxConcurrentReads = 4;
     // How the platform expresses Caching:CacheEnabled=false on the options it hands the factory.
     private static readonly TimeSpan CacheDisabled = TimeSpan.FromTicks(1);
 
@@ -241,31 +241,46 @@ public class AnalyticsService : IAnalyticsService
     }
 
     // GA has no "max(dateHour)", so reducing a fetched series would transfer one row per event name PER HOUR to
-    // produce two numbers. Two narrow reads answer it instead: 'count' mode for the totals, then a one-row 'date'
-    // probe per name that has any.
+    // produce two numbers. One narrow read per name answers both instead, and named reads need nothing first, so
+    // they start together: no read of a named summary waits for another. Only an unnamed one must find its names.
     protected virtual async Task<IList<AnalyticsEventSummary>> CreateSummariesAsync(
         AnalyticsDataApiSettings settings,
         AnalyticsEventSummaryCriteria criteria)
     {
-        var totalsQuery = CreateQuery(settings, criteria);
-        totalsQuery.SortBy = ModuleConstants.SortBy.Count;
-        totalsQuery.Take = criteria.EventNames.IsNullOrEmpty() ? MaxEventNames : criteria.EventNames.Count;
+        var eventNames = criteria.EventNames.IsNullOrEmpty()
+            ? await GetEventNamesAsync(settings, criteria)
+            : criteria.EventNames;
 
-        var totals = await _dataSource.GetRowsAsync(totalsQuery);
+        var summaries = new AnalyticsEventSummary[eventNames.Count];
 
-        // Count-mode rows carry no date, so the summaries come back with a null LastOccurredAt that the probe fills.
-        var summaries = CreateSummaries(criteria, totals.Events);
-
-        // A failed probe fails the whole read: a null LastOccurredAt reads as "never happened".
+        // A failed read fails the whole summary: a null LastOccurredAt reads as "never happened".
         await Parallel.ForEachAsync(
-            summaries.Where(x => x.TotalCount > 0),
-            new ParallelOptions { MaxDegreeOfParallelism = MaxProbeConcurrency },
-            async (summary, _) => summary.LastOccurredAt = await GetLastOccurredAtAsync(settings, criteria, summary.EventName));
+            Enumerable.Range(0, eventNames.Count),
+            new ParallelOptions { MaxDegreeOfParallelism = MaxConcurrentReads },
+            async (index, _) => summaries[index] = await GetSummaryAsync(settings, criteria, eventNames[index]));
 
         return summaries;
     }
 
-    protected virtual async Task<DateTime?> GetLastOccurredAtAsync(
+    protected virtual async Task<IList<string>> GetEventNamesAsync(
+        AnalyticsDataApiSettings settings,
+        AnalyticsEventSummaryCriteria criteria)
+    {
+        var query = CreateQuery(settings, criteria);
+        query.SortBy = ModuleConstants.SortBy.Count;
+        query.Take = MaxEventNames;
+
+        var rows = await _dataSource.GetRowsAsync(query);
+
+        return rows.Events
+            .Select(x => x.EventName)
+            .Where(x => !string.IsNullOrEmpty(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    // The newest bucket answers "when", and the total Google sums over every bucket answers "how many".
+    protected virtual async Task<AnalyticsEventSummary> GetSummaryAsync(
         AnalyticsDataApiSettings settings,
         AnalyticsEventSummaryCriteria criteria,
         string eventName)
@@ -273,11 +288,18 @@ public class AnalyticsService : IAnalyticsService
         var query = CreateQuery(settings, criteria);
         query.EventNames = [eventName];
         query.SortBy = ModuleConstants.SortBy.Date;
-        query.Take = LatestBucketProbeSize;
+        query.Take = LatestBucketSize;
 
         var rows = await _dataSource.GetRowsAsync(query);
 
-        return rows.Events.Where(x => x.EventName.EqualsIgnoreCase(eventName)).Max(x => x.OccurredAt);
+        var result = AbstractTypeFactory<AnalyticsEventSummary>.TryCreateInstance();
+        result.EventName = eventName;
+        result.TotalCount = rows.TotalEventCount;
+        result.LastOccurredAt = result.TotalCount > 0
+            ? rows.Events.Where(x => x.EventName.EqualsIgnoreCase(eventName)).Max(x => x.OccurredAt)
+            : null;
+
+        return result;
     }
 
     protected virtual AnalyticsDataQuery CreateQuery(AnalyticsDataApiSettings settings, AnalyticsEventCriteriaBase criteria)
@@ -292,40 +314,6 @@ public class AnalyticsService : IAnalyticsService
         query.RequestTimeout = settings.RequestTimeout;
 
         return query;
-    }
-
-    protected virtual IList<AnalyticsEventSummary> CreateSummaries(AnalyticsEventSummaryCriteria criteria, IList<AnalyticsEvent> events)
-    {
-        var aggregates = new Dictionary<string, (int TotalCount, DateTime? LastOccurredAt)>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var analyticsEvent in events.Where(x => !string.IsNullOrEmpty(x.EventName)))
-        {
-            aggregates.TryGetValue(analyticsEvent.EventName, out var aggregate);
-
-            aggregates[analyticsEvent.EventName] = (
-                aggregate.TotalCount + analyticsEvent.Count,
-                aggregate.LastOccurredAt == null || analyticsEvent.OccurredAt > aggregate.LastOccurredAt
-                    ? analyticsEvent.OccurredAt
-                    : aggregate.LastOccurredAt);
-        }
-
-        var eventNames = criteria.EventNames.IsNullOrEmpty() ? aggregates.Keys.ToList() : criteria.EventNames;
-
-        return eventNames
-            .Select(eventName =>
-            {
-                var summary = AbstractTypeFactory<AnalyticsEventSummary>.TryCreateInstance();
-                summary.EventName = eventName;
-
-                if (aggregates.TryGetValue(eventName, out var aggregate))
-                {
-                    summary.TotalCount = aggregate.TotalCount;
-                    summary.LastOccurredAt = aggregate.LastOccurredAt;
-                }
-
-                return summary;
-            })
-            .ToList();
     }
 
     protected virtual TimeSpan GetCacheTtl(AnalyticsDataApiSettings settings)

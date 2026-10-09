@@ -354,8 +354,8 @@ public class GoogleAnalyticsDataSourceTests
         Assert.Equal("SKU-001", analyticsEvent.Dimensions["itemId"]);
     }
 
-    // Item rows carry no event name, so two requested names would come back unattributable — and through
-    // CreateSummaries as zero counts indistinguishable from no activity.
+    // Item rows carry no event name, so two requested names would come back unattributable — and a summary would
+    // report them as zero counts, indistinguishable from no activity.
     [Fact]
     public async Task GetRowsAsync_ItemRows_MultipleEventNames_Throws()
     {
