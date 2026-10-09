@@ -529,6 +529,37 @@ public class AnalyticsServiceTests
         return CreateService(new AnalyticsDataApiSettings { PropertyId = PropertyId }, failureCacheTtl, cacheEnabled);
     }
 
+    [Fact]
+    public async Task SearchEventsAsync_ReadCarriesTheStoresRequestTimeout()
+    {
+        AnalyticsDataQuery query = null;
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .Callback<AnalyticsDataQuery>(x => query = x)
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        var service = CreateService(new AnalyticsDataApiSettings { PropertyId = PropertyId, RequestTimeoutSeconds = 12 });
+
+        await service.SearchEventsAsync(CreateSearchCriteria());
+
+        Assert.Equal(TimeSpan.FromSeconds(12), query.RequestTimeout);
+    }
+
+    [Fact]
+    public async Task GetEventSummariesAsync_EveryReadCarriesTheStoresRequestTimeout()
+    {
+        var queries = new ConcurrentQueue<AnalyticsDataQuery>();
+        _googleDataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .Callback<AnalyticsDataQuery>(queries.Enqueue)
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        var service = CreateService(new AnalyticsDataApiSettings { PropertyId = PropertyId, RequestTimeoutSeconds = 12 });
+
+        await service.GetEventSummariesAsync(CreateSummaryCriteria(ModuleConstants.EventNames.Search));
+
+        Assert.NotEmpty(queries);
+        Assert.All(queries, x => Assert.Equal(TimeSpan.FromSeconds(12), x.RequestTimeout));
+    }
+
     // The request only carries dates, so these are one Google query — and the key decides whether it runs twice.
     [Fact]
     public async Task SearchEventsAsync_CriteriaDifferingOnlyInTimeOfDay_UsesCache()

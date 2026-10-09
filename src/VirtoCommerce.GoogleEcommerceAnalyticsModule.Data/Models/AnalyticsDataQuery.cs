@@ -24,4 +24,6 @@ public class AnalyticsDataQuery
     public int Take { get; set; }
 
     public int Skip { get; set; }
+
+    public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(ModuleConstants.Settings.DataApi.DefaultRequestTimeoutSeconds);
 }

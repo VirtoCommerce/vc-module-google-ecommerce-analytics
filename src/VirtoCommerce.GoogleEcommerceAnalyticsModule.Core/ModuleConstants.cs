@@ -136,6 +136,10 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
             {
                 public const int DefaultCacheTtlMinutes = 60;
 
+                // Below the ~60 s an ingress typically gives a request: a slow Google answer then fails the read, which
+                // the consumer degrades on, instead of the gateway failing the consumer's whole request.
+                public const int DefaultRequestTimeoutSeconds = 45;
+
                 public static SettingDescriptor PropertyId { get; } = new SettingDescriptor
                 {
                     Name = "GoogleAnalytics4.DataApi.PropertyId",
@@ -151,12 +155,21 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     DefaultValue = DefaultCacheTtlMinutes
                 };
 
+                public static SettingDescriptor RequestTimeoutSeconds { get; } = new SettingDescriptor
+                {
+                    Name = "GoogleAnalytics4.DataApi.RequestTimeoutSeconds",
+                    GroupName = "Google Analytics 4",
+                    ValueType = SettingValueType.PositiveInteger,
+                    DefaultValue = DefaultRequestTimeoutSeconds
+                };
+
                 public static IEnumerable<SettingDescriptor> AllSettings
                 {
                     get
                     {
                         yield return PropertyId;
                         yield return CacheTtlMinutes;
+                        yield return RequestTimeoutSeconds;
                     }
                 }
             }
@@ -170,6 +183,7 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                     yield return General.GtmContainerId;
                     yield return DataApi.PropertyId;
                     yield return DataApi.CacheTtlMinutes;
+                    yield return DataApi.RequestTimeoutSeconds;
                 }
             }
         }

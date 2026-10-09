@@ -25,6 +25,10 @@
         "CacheTtlMinutes": {
           "title": "Czas życia pamięci podręcznej raportów, minuty",
           "description": "Jak długo wyniki raportów Google Analytics są przechowywane w pamięci podręcznej dla sklepu"
+        },
+        "RequestTimeoutSeconds": {
+          "title": "Limit czasu żądań raportów, sekundy",
+          "description": "Jak długo czekać na odpowiedź Google Analytics na jedno żądanie raportu, zanim odczyt zakończy się niepowodzeniem"
         }
       }
     }

@@ -25,6 +25,10 @@
         "CacheTtlMinutes": {
           "title": "Duración de la caché de informes, minutos",
           "description": "Cuánto tiempo se almacenan en caché los resultados de los informes de Google Analytics por tienda"
+        },
+        "RequestTimeoutSeconds": {
+          "title": "Tiempo de espera de las solicitudes de informes, segundos",
+          "description": "Cuánto tiempo se espera la respuesta de Google Analytics a una solicitud de informe antes de que la lectura falle"
         }
       }
     }

@@ -25,6 +25,10 @@
         "CacheTtlMinutes": {
           "title": "Durée du cache des rapports, minutes",
           "description": "Durée de mise en cache des résultats des rapports Google Analytics par magasin"
+        },
+        "RequestTimeoutSeconds": {
+          "title": "Délai d'attente des requêtes de rapport, secondes",
+          "description": "Durée d'attente de la réponse de Google Analytics à une requête de rapport avant l'échec de la lecture"
         }
       }
     }

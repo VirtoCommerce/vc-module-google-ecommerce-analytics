@@ -36,6 +36,7 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
 
         result.PropertyId = await GetSettingAsync<string>(storeSettings, DataApiSettings.PropertyId);
         result.CacheTtlMinutes = await GetSettingAsync<int>(storeSettings, DataApiSettings.CacheTtlMinutes);
+        result.RequestTimeoutSeconds = await GetSettingAsync<int>(storeSettings, DataApiSettings.RequestTimeoutSeconds);
 
         return result;
     }

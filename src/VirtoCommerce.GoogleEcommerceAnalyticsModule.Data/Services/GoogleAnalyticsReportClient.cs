@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Analytics.Data.V1Beta;
+using Google.Api.Gax;
+using Google.Api.Gax.Grpc;
 using Google.Apis.Auth.OAuth2;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
@@ -26,28 +28,34 @@ public class GoogleAnalyticsReportClient : IGoogleAnalyticsReportClient
         return GetCredentialAsync();
     }
 
-    public virtual async Task<Metadata> GetMetadataAsync(string propertyId)
+    public virtual async Task<Metadata> GetMetadataAsync(string propertyId, TimeSpan timeout)
     {
         var client = await GetClientAsync();
-        return await client.GetMetadataAsync(new GetMetadataRequest { Name = $"properties/{propertyId}/metadata" });
+        return await client.GetMetadataAsync(new GetMetadataRequest { Name = $"properties/{propertyId}/metadata" }, CreateCallSettings(timeout));
     }
 
-    public virtual async Task<RunReportResponse> RunReportAsync(RunReportRequest request)
+    public virtual async Task<RunReportResponse> RunReportAsync(RunReportRequest request, TimeSpan timeout)
     {
         var client = await GetClientAsync();
-        return await client.RunReportAsync(request);
+        return await client.RunReportAsync(request, CreateCallSettings(timeout));
     }
 
-    public virtual async Task<RunRealtimeReportResponse> RunRealtimeReportAsync(RunRealtimeReportRequest request)
+    public virtual async Task<RunRealtimeReportResponse> RunRealtimeReportAsync(RunRealtimeReportRequest request, TimeSpan timeout)
     {
         var client = await GetClientAsync();
-        return await client.RunRealtimeReportAsync(request);
+        return await client.RunRealtimeReportAsync(request, CreateCallSettings(timeout));
     }
 
-    public virtual async Task<CheckCompatibilityResponse> CheckCompatibilityAsync(CheckCompatibilityRequest request)
+    public virtual async Task<CheckCompatibilityResponse> CheckCompatibilityAsync(CheckCompatibilityRequest request, TimeSpan timeout)
     {
         var client = await GetClientAsync();
-        return await client.CheckCompatibilityAsync(request);
+        return await client.CheckCompatibilityAsync(request, CreateCallSettings(timeout));
+    }
+
+    // Overlays the library's per-method default (60 s, never retried) with the store's deadline.
+    protected virtual CallSettings CreateCallSettings(TimeSpan timeout)
+    {
+        return CallSettings.FromExpiration(Expiration.FromTimeout(timeout));
     }
 
     protected virtual Task<BetaAnalyticsDataClient> GetClientAsync()

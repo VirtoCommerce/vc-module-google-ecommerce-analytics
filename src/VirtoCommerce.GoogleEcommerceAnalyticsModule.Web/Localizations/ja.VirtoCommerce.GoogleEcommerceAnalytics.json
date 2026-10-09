@@ -25,6 +25,10 @@
         "CacheTtlMinutes": {
           "title": "レポートキャッシュの有効期間（分）",
           "description": "ストアごとに Google Analytics のレポート結果をキャッシュする時間"
+        },
+        "RequestTimeoutSeconds": {
+          "title": "レポートリクエストのタイムアウト（秒）",
+          "description": "1 件のレポートリクエストに対する Google Analytics の応答を待つ時間。超えると読み取りは失敗します"
         }
       }
     }

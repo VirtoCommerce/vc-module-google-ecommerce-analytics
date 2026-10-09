@@ -126,7 +126,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         try
         {
-            var metadata = await _reportClient.GetMetadataAsync(settings.PropertyId);
+            var metadata = await _reportClient.GetMetadataAsync(settings.PropertyId, settings.RequestTimeout);
             if (metadata == null)
             {
                 AddCheck(checks, Stages.ApiAccess, Statuses.Failed, "Google Analytics Data API returned no metadata.");
@@ -231,7 +231,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             foreach (var shape in shapes)
             {
                 var compatibilityRequest = BuildCompatibilityRequest(settings.PropertyId, shape, userDimensionNames);
-                var response = await _reportClient.CheckCompatibilityAsync(compatibilityRequest);
+                var response = await _reportClient.CheckCompatibilityAsync(compatibilityRequest, settings.RequestTimeout);
                 var incompatibleFields = GetIncompatibleFields(response, GetRequestedFieldNames(compatibilityRequest));
 
                 if (incompatibleFields.Count > 0)
@@ -286,13 +286,13 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             try
             {
                 response = await _reportClient.RunRealtimeReportAsync(
-                    BuildRealtimeRequest(settings.PropertyId, userDimensionNames));
+                    BuildRealtimeRequest(settings.PropertyId, userDimensionNames), settings.RequestTimeout);
             }
             catch (RpcException ex) when (userDimensionNames.Count > 0 && ex.StatusCode == StatusCode.InvalidArgument)
             {
                 dimensionFailure = ex;
                 response = await _reportClient.RunRealtimeReportAsync(
-                    BuildRealtimeRequest(settings.PropertyId, []));
+                    BuildRealtimeRequest(settings.PropertyId, []), settings.RequestTimeout);
             }
 
             var fallbackNote = dimensionFailure != null
@@ -326,7 +326,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         try
         {
-            var response = await _reportClient.RunReportAsync(BuildProcessedDataRequest(settings.PropertyId));
+            var response = await _reportClient.RunReportAsync(BuildProcessedDataRequest(settings.PropertyId), settings.RequestTimeout);
             var eventCounts = AggregateEventCounts(response.DimensionHeaders, response.Rows);
 
             if (eventCounts.Count == 0)

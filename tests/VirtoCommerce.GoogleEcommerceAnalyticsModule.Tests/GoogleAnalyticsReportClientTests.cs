@@ -1,7 +1,10 @@
 using System;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Google.Analytics.Data.V1Beta;
+using Google.Api.Gax.Grpc;
 using Google.Apis.Auth.OAuth2;
+using Moq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 using Xunit;
 
@@ -63,6 +66,23 @@ public class GoogleAnalyticsReportClientTests
         Assert.Equal(1, client.AdcCallCount);
     }
 
+    // The library's own default is 60 seconds, never retried; the store's deadline has to reach the call itself.
+    [Fact]
+    public async Task RunReportAsync_SendsTheTimeoutAsTheCallDeadline()
+    {
+        CallSettings callSettings = null;
+        var dataClientMock = new Mock<BetaAnalyticsDataClient>();
+        dataClientMock
+            .Setup(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.IsAny<CallSettings>()))
+            .Callback((RunReportRequest _, CallSettings settings) => callSettings = settings)
+            .ReturnsAsync(new RunReportResponse());
+        var client = new TestableReportClient(CreateUnscopedCredential()) { DataClient = dataClientMock.Object };
+
+        await client.RunReportAsync(new RunReportRequest(), TimeSpan.FromSeconds(45));
+
+        Assert.Equal(TimeSpan.FromSeconds(45), callSettings.Expiration.Timeout);
+    }
+
     private static GoogleCredential CreateUnscopedCredential()
     {
         using var rsa = RSA.Create(PrivateKeySizeInBits);
@@ -89,6 +109,8 @@ public class GoogleAnalyticsReportClientTests
 
         public bool FailNextAdcCall { get; set; }
 
+        public BetaAnalyticsDataClient DataClient { get; set; }
+
         public Task<GoogleCredential> ResolveAsync()
         {
             return ResolveCredentialAsync();
@@ -98,6 +120,11 @@ public class GoogleAnalyticsReportClientTests
         public Task<GoogleCredential> GetCachedCredentialAsync()
         {
             return GetCredentialAsync();
+        }
+
+        protected override Task<BetaAnalyticsDataClient> GetClientAsync()
+        {
+            return DataClient != null ? Task.FromResult(DataClient) : base.GetClientAsync();
         }
 
         protected override Task<GoogleCredential> GetApplicationDefaultCredentialAsync()

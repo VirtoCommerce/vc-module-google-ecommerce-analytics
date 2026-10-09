@@ -25,6 +25,10 @@
         "CacheTtlMinutes": {
           "title": "Tempo de cache dos relatórios, minutos",
           "description": "Por quanto tempo os resultados dos relatórios do Google Analytics são armazenados em cache por loja"
+        },
+        "RequestTimeoutSeconds": {
+          "title": "Tempo limite das solicitações de relatórios, segundos",
+          "description": "Quanto tempo esperar pela resposta do Google Analytics a uma solicitação de relatório antes que a leitura falhe"
         }
       }
     }

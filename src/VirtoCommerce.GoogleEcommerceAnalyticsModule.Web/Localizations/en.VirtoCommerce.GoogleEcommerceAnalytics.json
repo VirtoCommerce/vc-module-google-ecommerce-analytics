@@ -25,6 +25,10 @@
         "CacheTtlMinutes": {
           "title": "Report cache lifetime, minutes",
           "description": "How long Google Analytics report results are cached per store"
+        },
+        "RequestTimeoutSeconds": {
+          "title": "Report request timeout, seconds",
+          "description": "How long to wait for Google Analytics to answer one report request before the read fails"
         }
       }
     }

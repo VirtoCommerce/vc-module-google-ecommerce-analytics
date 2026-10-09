@@ -144,7 +144,7 @@ public class AnalyticsDiagnosticsServiceTests
         Assert.Contains("gcloud auth application-default login", credentials.Message);
         Assert.Equal("The Application Default Credentials are not available.", credentials.Detail);
         Assert.All(result.Checks.Skip(2), x => Assert.Equal(Statuses.Skipped, x.Status));
-        _reportClientMock.Verify(x => x.GetMetadataAsync(It.IsAny<string>()), Times.Never);
+        _reportClientMock.Verify(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     [Fact]
@@ -310,7 +310,7 @@ public class AnalyticsDiagnosticsServiceTests
     {
         SetupHappyGooglePath();
         _reportClientMock
-            .Setup(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>()))
+            .Setup(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>(), It.IsAny<TimeSpan>()))
             .ThrowsAsync(new InvalidOperationException("credentials missing"));
         var service = CreateService();
 
@@ -334,7 +334,7 @@ public class AnalyticsDiagnosticsServiceTests
         var result = await service.RunAsync(StoreId, request);
 
         Assert.Equal(Statuses.Skipped, GetCheck(result, Stages.ReportCompatibility).Status);
-        _reportClientMock.Verify(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>()), Times.Never);
+        _reportClientMock.Verify(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     [Fact]
@@ -342,8 +342,8 @@ public class AnalyticsDiagnosticsServiceTests
     {
         SetupHappyGooglePath();
         _reportClientMock
-            .Setup(x => x.RunRealtimeReportAsync(It.Is<RunRealtimeReportRequest>(r => r.Dimensions.Count > 1)))
-            .Callback((RunRealtimeReportRequest request) => _capturedRealtimeRequests.Add(request))
+            .Setup(x => x.RunRealtimeReportAsync(It.Is<RunRealtimeReportRequest>(r => r.Dimensions.Count > 1), It.IsAny<TimeSpan>()))
+            .Callback((RunRealtimeReportRequest request, TimeSpan _) => _capturedRealtimeRequests.Add(request))
             .ThrowsAsync(CreateRpcException(StatusCode.InvalidArgument, "Field customUser:session_kind is not a valid dimension."));
         var service = CreateService();
 
@@ -388,8 +388,8 @@ public class AnalyticsDiagnosticsServiceTests
         AssertStageOrder(result);
         Assert.Equal(Statuses.Skipped, GetCheck(result, Stages.Realtime).Status);
         Assert.Equal(Statuses.Skipped, GetCheck(result, Stages.ProcessedData).Status);
-        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>()), Times.Never);
-        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
+        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>(), It.IsAny<TimeSpan>()), Times.Never);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     [Fact]
@@ -397,7 +397,7 @@ public class AnalyticsDiagnosticsServiceTests
     {
         SetupHappyGooglePath();
         _reportClientMock
-            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>()))
+            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>(), It.IsAny<TimeSpan>()))
             .ThrowsAsync(CreateRpcException(StatusCode.Unavailable, "try again later"));
         var service = CreateService();
 
@@ -419,16 +419,16 @@ public class AnalyticsDiagnosticsServiceTests
         await service.RunAsync(StoreId, CreateRequest());
         await service.RunAsync(StoreId, CreateRequest());
 
-        _reportClientMock.Verify(x => x.GetMetadataAsync(It.IsAny<string>()), Times.Exactly(2));
-        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>()), Times.Exactly(2));
-        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Exactly(2));
+        _reportClientMock.Verify(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()), Times.Exactly(2));
+        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>(), It.IsAny<TimeSpan>()), Times.Exactly(2));
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.IsAny<TimeSpan>()), Times.Exactly(2));
     }
 
     private async Task<AnalyticsDiagnosticsCheck> RunApiAccessFailureAsync(RpcException exception)
     {
         SetupGoogleSettings();
         _reportClientMock
-            .Setup(x => x.GetMetadataAsync(It.IsAny<string>()))
+            .Setup(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
             .ThrowsAsync(exception);
         var service = CreateService();
 
@@ -478,6 +478,27 @@ public class AnalyticsDiagnosticsServiceTests
         return new AnalyticsDiagnosticsService(_settingsResolverMock.Object, _reportClientMock.Object);
     }
 
+    [Fact]
+    public async Task RunAsync_EveryGoogleCallCarriesTheStoresRequestTimeout()
+    {
+        SetupHappyGooglePath();
+        SetupSettings(new AnalyticsDataApiSettings { PropertyId = PropertyId, RequestTimeoutSeconds = 7 });
+        var service = CreateService();
+
+        await service.RunAsync(StoreId, CreateRequest());
+
+        var timeout = TimeSpan.FromSeconds(7);
+        _reportClientMock.Verify(x => x.GetMetadataAsync(PropertyId, timeout), Times.AtLeastOnce);
+        _reportClientMock.Verify(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>(), timeout), Times.AtLeastOnce);
+        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>(), timeout), Times.AtLeastOnce);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), timeout), Times.AtLeastOnce);
+
+        _reportClientMock.Verify(x => x.GetMetadataAsync(It.IsAny<string>(), It.Is<TimeSpan>(t => t != timeout)), Times.Never);
+        _reportClientMock.Verify(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>(), It.Is<TimeSpan>(t => t != timeout)), Times.Never);
+        _reportClientMock.Verify(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>(), It.Is<TimeSpan>(t => t != timeout)), Times.Never);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.Is<TimeSpan>(t => t != timeout)), Times.Never);
+    }
+
     private void SetupHappyGooglePath()
     {
         SetupGoogleSettings();
@@ -508,30 +529,30 @@ public class AnalyticsDiagnosticsServiceTests
         }
 
         _reportClientMock
-            .Setup(x => x.GetMetadataAsync(PropertyId))
+            .Setup(x => x.GetMetadataAsync(PropertyId, It.IsAny<TimeSpan>()))
             .ReturnsAsync(metadata);
     }
 
     private void SetupCompatibility(CheckCompatibilityResponse response)
     {
         _reportClientMock
-            .Setup(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>()))
-            .Callback((CheckCompatibilityRequest request) => _capturedCompatibilityRequests.Add(request))
+            .Setup(x => x.CheckCompatibilityAsync(It.IsAny<CheckCompatibilityRequest>(), It.IsAny<TimeSpan>()))
+            .Callback((CheckCompatibilityRequest request, TimeSpan _) => _capturedCompatibilityRequests.Add(request))
             .ReturnsAsync(response);
     }
 
     private void SetupRealtime(RunRealtimeReportResponse response)
     {
         _reportClientMock
-            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>()))
-            .Callback((RunRealtimeReportRequest request) => _capturedRealtimeRequests.Add(request))
+            .Setup(x => x.RunRealtimeReportAsync(It.IsAny<RunRealtimeReportRequest>(), It.IsAny<TimeSpan>()))
+            .Callback((RunRealtimeReportRequest request, TimeSpan _) => _capturedRealtimeRequests.Add(request))
             .ReturnsAsync(response);
     }
 
     private void SetupReport(RunReportResponse response)
     {
         _reportClientMock
-            .Setup(x => x.RunReportAsync(It.IsAny<RunReportRequest>()))
+            .Setup(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.IsAny<TimeSpan>()))
             .ReturnsAsync(response);
     }
 

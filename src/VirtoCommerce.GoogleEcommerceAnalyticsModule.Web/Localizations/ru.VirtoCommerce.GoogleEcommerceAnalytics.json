@@ -25,6 +25,10 @@
         "CacheTtlMinutes": {
           "title": "Время жизни кэша отчётов, минуты",
           "description": "Как долго результаты отчётов Google Analytics кэшируются для магазина"
+        },
+        "RequestTimeoutSeconds": {
+          "title": "Тайм-аут запроса отчёта, секунды",
+          "description": "Сколько ждать ответа Google Analytics на один запрос отчёта, прежде чем чтение завершится ошибкой"
         }
       }
     }

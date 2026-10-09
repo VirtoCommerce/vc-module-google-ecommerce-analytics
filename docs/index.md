@@ -84,6 +84,11 @@ needed if another module consumes `IAnalyticsService`.
    paging as well as dates - together with the resolved property id, so re-pointing a store at another property
    takes effect at once; `from`/`to` are rounded to the day, so two reads differing only in time of day share one
    entry. Failed reads are cached too, briefly - see [When a read fails](#when-a-read-fails).
+1. **GoogleAnalytics4.DataApi.RequestTimeoutSeconds** - how long one request to Google may take before it is abandoned
+   and the read fails (default `45`). It replaces the client library's own default (60 seconds, never retried) on
+   every call the module makes, diagnostics included. The default stays under the ~60 seconds an ingress commonly
+   gives a whole HTTP request, so a slow answer from Google fails the read - which the consumer degrades on - instead
+   of the gateway failing the consumer's request.
 
 ## Reading analytics data
 
@@ -122,8 +127,8 @@ refuse:
   it resolves the global settings, which is the documented store → global → default fallback;
 * no property id configured, for the store or globally — `AnalyticsException`. Not being configured is a
   configuration error, not a state to be reported as "no activity";
-* anything Google refuses — a property that does not exist, a credential without access, a quota rejection —
-  `AnalyticsException`.
+* anything Google refuses — a property that does not exist, a credential without access, a quota rejection — or
+  does not answer within `RequestTimeoutSeconds` — `AnalyticsException`.
 
 The exception names the store and the operation and nothing else. The property id, the settings and Google's own
 response stay in this module's log, because a consumer cannot know how far its own error surface travels; run

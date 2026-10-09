@@ -26,6 +26,28 @@ public class GoogleAnalyticsDataSourceTests
     private readonly Mock<IGoogleAnalyticsReportClient> _reportClientMock = new();
 
     private RunReportRequest _capturedRequest;
+    private TimeSpan? _capturedTimeout;
+
+    // Both report shapes: an item-scoped read goes down its own path and must not drop the deadline on the way.
+    [Theory]
+    [InlineData(ModuleConstants.Dimensions.SearchTerm)]
+    [InlineData(ModuleConstants.Dimensions.ItemId)]
+    public async Task GetRowsAsync_SendsTheQueryTimeoutWithTheRequest(string dimensionName)
+    {
+        var dataSource = CreateDataSource();
+        var query = new AnalyticsDataQuery
+        {
+            PropertyId = "123456",
+            EventNames = new List<string> { ModuleConstants.EventNames.ViewItem },
+            DimensionNames = new List<string> { dimensionName },
+            Take = 5,
+            RequestTimeout = TimeSpan.FromSeconds(12),
+        };
+
+        await dataSource.GetRowsAsync(query);
+
+        Assert.Equal(TimeSpan.FromSeconds(12), _capturedTimeout);
+    }
 
     [Fact]
     public async Task GetRowsAsync_BuildsRunReportRequest()
@@ -311,7 +333,7 @@ public class GoogleAnalyticsDataSourceTests
         };
 
         await Assert.ThrowsAsync<ArgumentException>(() => dataSource.GetRowsAsync(query));
-        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     // GA4 reports dateHour in the PROPERTY's timezone and ships that zone with the response.
@@ -353,7 +375,7 @@ public class GoogleAnalyticsDataSourceTests
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() => dataSource.GetRowsAsync(query));
         Assert.Contains(ModuleConstants.UserDimensions.OrganizationId, exception.Message);
-        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     // Same widening as a filter without values, from the other end.
@@ -372,7 +394,7 @@ public class GoogleAnalyticsDataSourceTests
         };
 
         await Assert.ThrowsAsync<ArgumentException>(() => dataSource.GetRowsAsync(query));
-        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>()), Times.Never);
+        _reportClientMock.Verify(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     private static AnalyticsDataQuery CreateDateHourQuery()
@@ -407,8 +429,12 @@ public class GoogleAnalyticsDataSourceTests
     private GoogleAnalyticsDataSource CreateDataSource(RunReportResponse response = null)
     {
         _reportClientMock
-            .Setup(x => x.RunReportAsync(It.IsAny<RunReportRequest>()))
-            .Callback((RunReportRequest request) => _capturedRequest = request)
+            .Setup(x => x.RunReportAsync(It.IsAny<RunReportRequest>(), It.IsAny<TimeSpan>()))
+            .Callback((RunReportRequest request, TimeSpan timeout) =>
+            {
+                _capturedRequest = request;
+                _capturedTimeout = timeout;
+            })
             .ReturnsAsync(response ?? new RunReportResponse());
 
         return new GoogleAnalyticsDataSource(_reportClientMock.Object, NullLogger<GoogleAnalyticsDataSource>.Instance);

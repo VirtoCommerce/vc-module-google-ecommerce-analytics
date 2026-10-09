@@ -119,9 +119,9 @@ GraphQL surface; consumers build their own fields on top of it (the first is
 [VirtoCommerce.SalesRep](https://github.com/VirtoCommerce/vc-module-sales-rep), which turns it into rep-facing
 customer insights).
 
-Reporting needs two extra store settings — the numeric **GA4 property id** and a report cache lifetime — plus
-**Application Default Credentials** with the `analytics.readonly` scope and Viewer on the property. There is
-deliberately no credential *setting*, so no key material is stored in the platform database.
+Reporting needs extra store settings — the numeric **GA4 property id**, a report cache lifetime and a report request
+timeout — plus **Application Default Credentials** with the `analytics.readonly` scope and Viewer on the property.
+There is deliberately no credential *setting*, so no key material is stored in the platform database.
 `POST api/googleanalytics/{storeId}/diagnostics` runs a staged checklist that names exactly what is missing.
 
 Reads **throw** rather than answer a failure with an empty result — a store with no property id, a refused

@@ -289,6 +289,7 @@ public class AnalyticsService : IAnalyticsService
         query.DimensionFilters = criteria.DimensionFilters;
         query.From = criteria.From;
         query.To = criteria.To;
+        query.RequestTimeout = settings.RequestTimeout;
 
         return query;
     }

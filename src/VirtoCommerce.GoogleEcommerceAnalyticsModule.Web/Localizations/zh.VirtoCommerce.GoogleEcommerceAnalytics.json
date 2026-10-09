@@ -25,6 +25,10 @@
         "CacheTtlMinutes": {
           "title": "报告缓存有效期（分钟）",
           "description": "每个商店的 Google Analytics 报告结果缓存时长"
+        },
+        "RequestTimeoutSeconds": {
+          "title": "报告请求超时（秒）",
+          "description": "等待 Google Analytics 响应单个报告请求的时长，超时后读取失败"
         }
       }
     }

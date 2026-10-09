@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -103,6 +104,53 @@ public class AnalyticsSettingsResolverTests
         var settings = await resolver.ResolveAsync(StoreId);
 
         Assert.Equal(ModuleConstants.Settings.DataApi.DefaultCacheTtlMinutes, settings.CacheTtlMinutes);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_RequestTimeout_StoreValueWinsOverGlobal()
+    {
+        SetupGlobalSetting(ModuleConstants.Settings.DataApi.RequestTimeoutSeconds.Name, 30);
+        SetupStore(CreateStore((ModuleConstants.Settings.DataApi.RequestTimeoutSeconds.Name, 20)));
+        var resolver = CreateResolver();
+
+        var settings = await resolver.ResolveAsync(StoreId);
+
+        Assert.Equal(TimeSpan.FromSeconds(20), settings.RequestTimeout);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_RequestTimeout_FallsBackToGlobal()
+    {
+        SetupGlobalSetting(ModuleConstants.Settings.DataApi.RequestTimeoutSeconds.Name, 30);
+        SetupStore(CreateStore());
+        var resolver = CreateResolver();
+
+        var settings = await resolver.ResolveAsync(StoreId);
+
+        Assert.Equal(TimeSpan.FromSeconds(30), settings.RequestTimeout);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_RequestTimeout_DefaultsTo45Seconds()
+    {
+        SetupStore(CreateStore());
+        var resolver = CreateResolver();
+
+        var settings = await resolver.ResolveAsync(StoreId);
+
+        Assert.Equal(TimeSpan.FromSeconds(45), settings.RequestTimeout);
+    }
+
+    // Zero would mean no deadline at all: a call Google could hold for as long as it likes.
+    [Fact]
+    public async Task ResolveAsync_NonPositiveRequestTimeout_UsesTheDefault()
+    {
+        SetupStore(CreateStore((ModuleConstants.Settings.DataApi.RequestTimeoutSeconds.Name, 0)));
+        var resolver = CreateResolver();
+
+        var settings = await resolver.ResolveAsync(StoreId);
+
+        Assert.Equal(TimeSpan.FromSeconds(ModuleConstants.Settings.DataApi.DefaultRequestTimeoutSeconds), settings.RequestTimeout);
     }
 
     [Fact]

@@ -38,7 +38,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
 
     protected virtual async Task<AnalyticsEventSearchResult> GetEventScopedRowsAsync(AnalyticsDataQuery query)
     {
-        var response = await _reportClient.RunReportAsync(BuildEventReportRequest(query));
+        var response = await _reportClient.RunReportAsync(BuildEventReportRequest(query), query.RequestTimeout);
         return MapResponse(response, query);
     }
 
@@ -54,7 +54,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
                 nameof(query));
         }
 
-        var response = await _reportClient.RunReportAsync(BuildItemReportRequest(query));
+        var response = await _reportClient.RunReportAsync(BuildItemReportRequest(query), query.RequestTimeout);
         var result = MapResponse(response, query);
 
         var eventName = query.EventNames?.Count == 1 ? query.EventNames[0] : null;
