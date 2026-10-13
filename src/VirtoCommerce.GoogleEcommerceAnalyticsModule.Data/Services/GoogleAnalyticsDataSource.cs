@@ -47,17 +47,12 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     protected virtual async Task<AnalyticsEventSearchResult> GetItemScopedRowsAsync(AnalyticsDataQuery query)
     {
         // Refused at the service entry too; this is the backstop for a direct IAnalyticsDataSource caller.
-        if (query.EventNames?.Count > 1)
-        {
-            throw new ArgumentException(
-                "An item-scoped read cannot be narrowed to more than one event name: its rows carry no event name to tell them apart.",
-                nameof(query));
-        }
+        AnalyticsFilterBuilder.ValidateItemScope(query.EventNames, query.DimensionNames, query.DimensionFilters, nameof(query));
 
         var response = await _reportClient.RunReportAsync(BuildItemReportRequest(query), query.RequestTimeout);
         var result = MapResponse(response, query);
 
-        var eventName = query.EventNames?.Count == 1 ? query.EventNames[0] : null;
+        var eventName = query.EventNames?.FirstOrDefault();
         if (!string.IsNullOrEmpty(eventName))
         {
             foreach (var analyticsEvent in result.Events)
@@ -99,7 +94,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     {
         var request = new RunReportRequest
         {
-            Property = AnalyticsFilterBuilder.PropertyName(query.PropertyId),
+            Property = PropertyName.FormatProperty(query.PropertyId),
             Limit = query.Take > 0 ? query.Take : 1,
             Offset = query.Skip,
         };
@@ -193,10 +188,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
                 MapDimensionValue(analyticsEvent, headers[i], row.DimensionValues[i].Value, timeZone);
             }
 
-            analyticsEvent.Count = row.MetricValues.Count > 0
-                && int.TryParse(row.MetricValues[0].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var count)
-                ? count
-                : 0;
+            analyticsEvent.Count = AnalyticsFilterBuilder.ParseMetric<int>(row.MetricValues.FirstOrDefault()?.Value);
 
             result.Events.Add(analyticsEvent);
         }
@@ -207,9 +199,7 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
     // A read that matched nothing may come back without a totals row at all, which is a total of 0.
     protected virtual int ParseMetricTotal(RunReportResponse response)
     {
-        var total = response.Totals.FirstOrDefault()?.MetricValues.FirstOrDefault()?.Value;
-
-        return int.TryParse(total, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : 0;
+        return AnalyticsFilterBuilder.ParseMetric<int>(response.Totals.FirstOrDefault()?.MetricValues.FirstOrDefault()?.Value);
     }
 
     protected virtual void MapDimensionValue(AnalyticsEvent analyticsEvent, string dimensionName, string value, TimeZoneInfo timeZone)
@@ -284,11 +274,9 @@ public class GoogleAnalyticsDataSource : IAnalyticsDataSource
             return null;
         }
 
-        var local = DateTime.SpecifyKind(result, DateTimeKind.Unspecified);
-
         // The hour a spring-forward skips has no UTC instant, and converting one throws.
-        return timeZone.IsInvalidTime(local)
-            ? DateTime.SpecifyKind(local, DateTimeKind.Utc)
-            : TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
+        return timeZone.IsInvalidTime(result)
+            ? DateTime.SpecifyKind(result, DateTimeKind.Utc)
+            : TimeZoneInfo.ConvertTimeToUtc(result, timeZone);
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -43,26 +42,21 @@ public class AnalyticsSettingsResolver : IAnalyticsSettingsResolver
 
     protected virtual async Task<T> GetSettingAsync<T>(ICollection<ObjectSettingEntry> storeSettings, SettingDescriptor descriptor)
     {
-        var hasStoreValue = storeSettings?.Any(x =>
-            x.Name.EqualsIgnoreCase(descriptor.Name) && IsStoreOverride(x.Value)) == true;
+        var storeValue = storeSettings?.FirstOrDefault(x => x.Name.EqualsIgnoreCase(descriptor.Name))?.Value;
 
-        if (!hasStoreValue)
+        if (IsStoreOverride(storeValue))
         {
-            return await _settingsManager.GetValueAsync<T>(descriptor);
-        }
+            if (SettingValueConverter.TryConvert<T>(storeValue, out var value))
+            {
+                return value;
+            }
 
-        try
-        {
-            return storeSettings.GetValue<T>(descriptor);
-        }
-        catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
-        {
             // A misconfigured value is not a reason to fail the read.
-            _logger.LogWarning(ex, "Store setting {Setting} is not a valid {Type}; falling back to the global value",
+            _logger.LogWarning("Store setting {Setting} is not a valid {Type}; falling back to the global value",
                 descriptor.Name, typeof(T).Name);
-
-            return await _settingsManager.GetValueAsync<T>(descriptor);
         }
+
+        return await _settingsManager.GetValueAsync<T>(descriptor);
     }
 
     // Not just null: the admin UI writes "" for a cleared ShortText and a value of spaces is the same gesture,

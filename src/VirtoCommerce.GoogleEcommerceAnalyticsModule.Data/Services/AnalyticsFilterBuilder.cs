@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using Google.Analytics.Data.V1Beta;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
@@ -17,11 +19,6 @@ internal static class AnalyticsFilterBuilder
         ModuleConstants.Dimensions.ItemName,
         ModuleConstants.Dimensions.ItemListName,
     ];
-
-    public static string PropertyName(string propertyId)
-    {
-        return $"properties/{propertyId}";
-    }
 
     // Two callers on purpose: the service runs it before the cache, so a caller-caused refusal is never cached;
     // the data source runs it again as the last place that can refuse an unscoped read reaching Google.
@@ -51,6 +48,28 @@ internal static class AnalyticsFilterBuilder
     {
         return dimensionNames?.Any(ItemDimensionNames.Contains) == true
             || dimensionFilters?.Any(x => ItemDimensionNames.Contains(x?.DimensionName)) == true;
+    }
+
+    // Two callers, as for the dimension filters above.
+    public static void ValidateItemScope(
+        IList<string> eventNames,
+        IList<string> dimensionNames,
+        IList<AnalyticsDimensionFilter> dimensionFilters,
+        string paramName)
+    {
+        if (eventNames?.Count > 1 && HasItemDimensions(dimensionNames, dimensionFilters))
+        {
+            throw new ArgumentException(
+                "An item-scoped read cannot be narrowed to more than one event name: its rows carry no event name to tell them apart.",
+                paramName);
+        }
+    }
+
+    // GA sends every metric value as text; a missing or unparsable one counts as zero.
+    public static T ParseMetric<T>(string value)
+        where T : INumberBase<T>
+    {
+        return T.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : T.Zero;
     }
 
     // Ordinal on purpose: GA4 field names are case-sensitive, so a mis-cased name is rejected by the API

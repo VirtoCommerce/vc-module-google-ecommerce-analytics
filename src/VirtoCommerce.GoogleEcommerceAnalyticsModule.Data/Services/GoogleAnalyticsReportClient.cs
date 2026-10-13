@@ -10,7 +10,9 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 
 public class GoogleAnalyticsReportClient : IGoogleAnalyticsReportClient
 {
-    private static readonly string[] AnalyticsReadOnlyScopes = { "https://www.googleapis.com/auth/analytics.readonly" };
+    internal const string AnalyticsReadOnlyScope = "https://www.googleapis.com/auth/analytics.readonly";
+
+    private static readonly string[] AnalyticsReadOnlyScopes = [AnalyticsReadOnlyScope];
 
     // This client is a singleton and BetaAnalyticsDataClient is thread-safe. An explicitly supplied
     // GoogleCredential opts the builder out of the shared GAX channel pool, so building per call would leak
@@ -31,7 +33,7 @@ public class GoogleAnalyticsReportClient : IGoogleAnalyticsReportClient
     public virtual async Task<Metadata> GetMetadataAsync(string propertyId, TimeSpan timeout)
     {
         var client = await GetClientAsync();
-        return await client.GetMetadataAsync(new GetMetadataRequest { Name = $"properties/{propertyId}/metadata" }, CreateCallSettings(timeout));
+        return await client.GetMetadataAsync(new GetMetadataRequest { MetadataName = MetadataName.FromProperty(propertyId) }, CreateCallSettings(timeout));
     }
 
     public virtual async Task<RunReportResponse> RunReportAsync(RunReportRequest request, TimeSpan timeout)

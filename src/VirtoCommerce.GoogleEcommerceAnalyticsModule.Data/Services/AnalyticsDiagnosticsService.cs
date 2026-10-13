@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Google.Analytics.Data.V1Beta;
@@ -22,9 +21,9 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
 {
     private const string ApplicationDefaultCredentials = "Application Default Credentials";
     private const string ProbeFilterValue = "diagnostics-probe";
-    private const string ProcessedDataStartDate = "7daysAgo";
+    private const int ProcessedDataDays = 7;
     private const string ProcessedDataEndDate = "today";
-    private const int RealtimeMinutesAgo = 29;
+    private const int RealtimeWindowMinutes = 30;
     private const int LiveDataRowsLimit = 50;
 
     private const string ScopeInsufficientReason = "ACCESS_TOKEN_SCOPE_INSUFFICIENT";
@@ -93,7 +92,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         if (!settings.IsConfigured)
         {
             AddCheck(checks, Stages.Configuration, Statuses.Failed,
-                "GA4 Data API property id is not configured for the store (GoogleAnalytics4.DataApi.PropertyId).");
+                $"GA4 Data API property id is not configured for the store ({ModuleConstants.Settings.DataApi.PropertyId.Name}).");
             return null;
         }
 
@@ -156,7 +155,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
 
         if (reason == ScopeInsufficientReason)
         {
-            return "The credential's access token lacks the required scope — re-authorize or re-issue it with the https://www.googleapis.com/auth/analytics.readonly scope.";
+            return $"The credential's access token lacks the required scope — re-authorize or re-issue it with the {GoogleAnalyticsReportClient.AnalyticsReadOnlyScope} scope.";
         }
 
         if (reason == ServiceDisabledReason)
@@ -178,7 +177,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
 
         if (exception.StatusCode == StatusCode.NotFound)
         {
-            return $"GA4 property {propertyId} was not found — check the GoogleAnalytics4.DataApi.PropertyId setting (use the numeric property id, not the measurement id).";
+            return $"GA4 property {propertyId} was not found — check the {ModuleConstants.Settings.DataApi.PropertyId.Name} setting (use the numeric property id, not the measurement id).";
         }
 
         return "Google Analytics Data API call failed.";
@@ -198,7 +197,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
             .Where(x => !string.IsNullOrEmpty(x))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var missingNames = requestedNames
-            .Where(x => !registeredNames.Contains(ModuleConstants.UserDimensions.Prefix + x))
+            .Where(x => !registeredNames.Contains(MapDimensionName(x, requestedNames)))
             .ToList();
 
         if (missingNames.Count == 0)
@@ -304,12 +303,12 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
 
             if (eventCounts.Count == 0)
             {
-                AddCheck(checks, Stages.Realtime, Statuses.Warning, "No events in the last 30 minutes." + fallbackNote, detail);
+                AddCheck(checks, Stages.Realtime, Statuses.Warning, $"No events in the last {RealtimeWindowMinutes} minutes.{fallbackNote}", detail);
             }
             else
             {
                 AddCheck(checks, Stages.Realtime, GetDataStatus(missingNames),
-                    $"Events in the last 30 minutes: {FormatEventCounts(eventCounts)}.{fallbackNote}{DescribeMissingRequestedEvents(missingNames)}",
+                    $"Events in the last {RealtimeWindowMinutes} minutes: {FormatEventCounts(eventCounts)}.{fallbackNote}{DescribeMissingRequestedEvents(missingNames)}",
                     detail);
             }
         }
@@ -339,7 +338,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
                 var missingNames = GetMissingRequestedEvents(request, eventCounts);
 
                 AddCheck(checks, Stages.ProcessedData, GetDataStatus(missingNames),
-                    $"Processed events over the last 7 days: {FormatEventCounts(eventCounts)}.{DescribeMissingRequestedEvents(missingNames)}");
+                    $"Processed events over the last {ProcessedDataDays} days: {FormatEventCounts(eventCounts)}.{DescribeMissingRequestedEvents(missingNames)}");
             }
         }
         catch (Exception ex)
@@ -352,7 +351,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         var request = new CheckCompatibilityRequest
         {
-            Property = AnalyticsFilterBuilder.PropertyName(propertyId),
+            Property = PropertyName.FormatProperty(propertyId),
             CompatibilityFilter = Compatibility.Incompatible,
         };
 
@@ -377,7 +376,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
         }
 
         expressions.AddRange(userDimensionNames
-            .Select(x => AnalyticsFilterBuilder.CreateInListExpression(ModuleConstants.UserDimensions.Prefix + x, [ProbeFilterValue])));
+            .Select(x => AnalyticsFilterBuilder.CreateInListExpression(MapDimensionName(x, userDimensionNames), [ProbeFilterValue])));
 
         var dimensionFilter = AnalyticsFilterBuilder.Combine(expressions);
         if (dimensionFilter != null)
@@ -392,18 +391,18 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         var request = new RunRealtimeReportRequest
         {
-            Property = AnalyticsFilterBuilder.PropertyName(propertyId),
+            Property = PropertyName.FormatProperty(propertyId),
             Limit = LiveDataRowsLimit,
         };
 
         request.Dimensions.Add(new Dimension { Name = ModuleConstants.Dimensions.EventName });
         foreach (var dimensionName in userDimensionNames)
         {
-            request.Dimensions.Add(new Dimension { Name = ModuleConstants.UserDimensions.Prefix + dimensionName });
+            request.Dimensions.Add(new Dimension { Name = MapDimensionName(dimensionName, userDimensionNames) });
         }
 
         request.Metrics.Add(new Metric { Name = ModuleConstants.Metrics.EventCount });
-        request.MinuteRanges.Add(new MinuteRange { StartMinutesAgo = RealtimeMinutesAgo, EndMinutesAgo = 0 });
+        request.MinuteRanges.Add(new MinuteRange { StartMinutesAgo = RealtimeWindowMinutes - 1, EndMinutesAgo = 0 });
 
         return request;
     }
@@ -412,11 +411,11 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         var request = new RunReportRequest
         {
-            Property = AnalyticsFilterBuilder.PropertyName(propertyId),
+            Property = PropertyName.FormatProperty(propertyId),
             Limit = LiveDataRowsLimit,
         };
 
-        request.DateRanges.Add(new DateRange { StartDate = ProcessedDataStartDate, EndDate = ProcessedDataEndDate });
+        request.DateRanges.Add(new DateRange { StartDate = $"{ProcessedDataDays}daysAgo", EndDate = ProcessedDataEndDate });
         request.Dimensions.Add(new Dimension { Name = ModuleConstants.Dimensions.EventName });
         request.Metrics.Add(new Metric { Name = ModuleConstants.Metrics.EventCount });
 
@@ -488,10 +487,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
                 continue;
             }
 
-            var count = row.MetricValues.Count > 0
-                && long.TryParse(row.MetricValues[0].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
-                ? value
-                : 0;
+            var count = AnalyticsFilterBuilder.ParseMetric<long>(row.MetricValues.FirstOrDefault()?.Value);
             counts[eventName] = counts.TryGetValue(eventName, out var existing) ? existing + count : count;
         }
 
@@ -507,7 +503,7 @@ public class AnalyticsDiagnosticsService : IAnalyticsDiagnosticsService
     {
         return (request.EventNames ?? [])
             .Where(x => !string.IsNullOrEmpty(x) && !eventCounts.Any(count => count.Key.EqualsIgnoreCase(x)))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .DistinctIgnoreCase()
             .ToList();
     }
 

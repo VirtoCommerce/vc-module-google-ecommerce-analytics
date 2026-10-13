@@ -14,10 +14,15 @@ public class AnalyticsFilterBuilderTests
 {
     private const string ParamName = "criteria";
 
-    [Fact]
-    public void PropertyName_PrefixesTheNumericId()
+    // A metric value Google leaves out or sends unparsable counts as zero rather than failing the read.
+    [Theory]
+    [InlineData("17", 17)]
+    [InlineData(null, 0)]
+    [InlineData("", 0)]
+    [InlineData("n/a", 0)]
+    public void ParseMetric_ReadsTheNumberOrZero(string value, int expected)
     {
-        Assert.Equal("properties/123456", AnalyticsFilterBuilder.PropertyName("123456"));
+        Assert.Equal(expected, AnalyticsFilterBuilder.ParseMetric<int>(value));
     }
 
     // Dropped rather than refused, a nameless filter widens the read to every organization.

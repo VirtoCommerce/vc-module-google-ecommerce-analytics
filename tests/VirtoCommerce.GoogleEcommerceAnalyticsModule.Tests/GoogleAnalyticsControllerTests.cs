@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core.Services;
@@ -50,15 +51,14 @@ public class GoogleAnalyticsControllerTests
         {
             Checks = [new AnalyticsDiagnosticsCheck { Stage = ModuleConstants.DiagnosticsStages.Configuration }],
         };
-        var diagnosticsService = new FakeDiagnosticsService(report);
-        var controller = new GoogleAnalyticsController(new FakeSettingsManager(), null, diagnosticsService);
         var request = new AnalyticsDiagnosticsRequest { EventNames = [ModuleConstants.EventNames.Search] };
+        var diagnosticsService = new Mock<IAnalyticsDiagnosticsService>();
+        diagnosticsService.Setup(x => x.RunAsync("B2B-store", request)).ReturnsAsync(report);
+        var controller = new GoogleAnalyticsController(Mock.Of<IGoogleAnalyticsSettingsManager>(), null, diagnosticsService.Object);
 
         var response = await controller.RunDiagnostics("B2B-store", request);
 
         Assert.Same(report, Assert.IsType<OkObjectResult>(response.Result).Value);
-        Assert.Equal("B2B-store", diagnosticsService.StoreId);
-        Assert.Same(request, diagnosticsService.Request);
     }
 
     private static AuthorizeAttribute[] GetAuthorizeAttributes(string actionName)
@@ -69,35 +69,5 @@ public class GoogleAnalyticsControllerTests
             .Single(x => x.Name == actionName)
             .GetCustomAttributes<AuthorizeAttribute>()
             .ToArray();
-    }
-
-    private sealed class FakeDiagnosticsService : IAnalyticsDiagnosticsService
-    {
-        private readonly AnalyticsDiagnosticsResult _report;
-
-        public FakeDiagnosticsService(AnalyticsDiagnosticsResult report)
-        {
-            _report = report;
-        }
-
-        public string StoreId { get; private set; }
-
-        public AnalyticsDiagnosticsRequest Request { get; private set; }
-
-        public Task<AnalyticsDiagnosticsResult> RunAsync(string storeId, AnalyticsDiagnosticsRequest request)
-        {
-            StoreId = storeId;
-            Request = request;
-
-            return Task.FromResult(_report);
-        }
-    }
-
-    private sealed class FakeSettingsManager : IGoogleAnalyticsSettingsManager
-    {
-        public Task<GoogleAnalyticsSettings> GetAsync(string storeId)
-        {
-            return Task.FromResult(new GoogleAnalyticsSettings());
-        }
     }
 }

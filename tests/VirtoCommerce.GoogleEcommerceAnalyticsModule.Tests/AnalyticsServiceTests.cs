@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Core;
@@ -28,13 +27,7 @@ public class AnalyticsServiceTests
     private static readonly DateTime To = new(2026, 8, 25, 12, 0, 0, DateTimeKind.Utc);
 
     private readonly Mock<IAnalyticsSettingsResolver> _settingsResolverMock = new();
-    private readonly Mock<IGoogleAnalyticsReportClient> _reportClientMock = new();
-    private readonly Mock<GoogleAnalyticsDataSource> _googleDataSourceMock;
-
-    public AnalyticsServiceTests()
-    {
-        _googleDataSourceMock = new Mock<GoogleAnalyticsDataSource>(_reportClientMock.Object, NullLogger<GoogleAnalyticsDataSource>.Instance);
-    }
+    private readonly Mock<IAnalyticsDataSource> _dataSourceMock = new();
 
     [Theory]
     [InlineData(PropertyId, true)]
@@ -78,7 +71,7 @@ public class AnalyticsServiceTests
 
         await Assert.ThrowsAsync<ArgumentException>(() => service.SearchEventsAsync(criteria));
         _settingsResolverMock.Verify(x => x.ResolveAsync(It.IsAny<string>()), Times.Never);
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
     }
 
     [Theory]
@@ -144,7 +137,7 @@ public class AnalyticsServiceTests
         _settingsResolverMock
             .Setup(x => x.ResolveAsync(storeId))
             .ReturnsAsync(new AnalyticsDataApiSettings { PropertyId = PropertyId });
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .Callback((AnalyticsDataQuery query) => capturedQuery = query)
             .ReturnsAsync(CreateSearchResult(("search", To, 3)));
@@ -176,7 +169,7 @@ public class AnalyticsServiceTests
 
         // Not "for store ''": an absent store id is a shape, not a missing value.
         Assert.DoesNotContain("''", failure.Message);
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
     }
 
     // "Not configured" is a configuration error, not an answer: a consumer handed an empty result would present
@@ -188,7 +181,7 @@ public class AnalyticsServiceTests
 
         await Assert.ThrowsAsync<AnalyticsException>(() => service.SearchEventsAsync(CreateSearchCriteria()));
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
     }
 
     // Only the Google call is cached. Configuration is re-read on every call, so the store configured a minute
@@ -200,9 +193,7 @@ public class AnalyticsServiceTests
             .SetupSequence(x => x.ResolveAsync(StoreId))
             .ReturnsAsync(new AnalyticsDataApiSettings())
             .ReturnsAsync(new AnalyticsDataApiSettings { PropertyId = PropertyId });
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateService();
 
         await Assert.ThrowsAsync<AnalyticsException>(() => service.SearchEventsAsync(CreateSearchCriteria()));
@@ -214,9 +205,7 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task SearchEventsAsync_SameCriteria_UsesCache()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateGoogleConfiguredService();
 
         var first = await service.SearchEventsAsync(CreateSearchCriteria());
@@ -224,15 +213,13 @@ public class AnalyticsServiceTests
 
         Assert.Equal(1, first.TotalCount);
         Assert.Equal(1, second.TotalCount);
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
     }
 
     [Fact]
     public async Task SearchEventsAsync_DifferentCriteria_QueriesSourceAgain()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateGoogleConfiguredService();
 
         await service.SearchEventsAsync(CreateSearchCriteria());
@@ -240,21 +227,19 @@ public class AnalyticsServiceTests
         otherCriteria.SortBy = ModuleConstants.SortBy.Count;
         await service.SearchEventsAsync(otherCriteria);
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
     }
 
     [Fact]
     public async Task SearchEventsAsync_DifferentDimensionFilterValues_UseDifferentCacheKeys()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateGoogleConfiguredService();
 
         await service.SearchEventsAsync(CreateSearchCriteria(organizationId: "org1"));
         await service.SearchEventsAsync(CreateSearchCriteria(organizationId: "org2"));
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
     }
 
     // The rows are OF a property: re-pointing the store must not keep serving the previous property's numbers.
@@ -265,24 +250,20 @@ public class AnalyticsServiceTests
             .SetupSequence(x => x.ResolveAsync(StoreId))
             .ReturnsAsync(new AnalyticsDataApiSettings { PropertyId = "111111" })
             .ReturnsAsync(new AnalyticsDataApiSettings { PropertyId = "222222" });
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateService();
 
         await service.SearchEventsAsync(CreateSearchCriteria());
         await service.SearchEventsAsync(CreateSearchCriteria());
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.PropertyId == "111111")), Times.Once);
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.PropertyId == "222222")), Times.Once);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.PropertyId == "111111")), Times.Once);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.PropertyId == "222222")), Times.Once);
     }
 
     [Fact]
     public async Task SearchEventsAsync_ReturnsClonedResult()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateGoogleConfiguredService();
 
         var first = await service.SearchEventsAsync(CreateSearchCriteria());
@@ -296,7 +277,7 @@ public class AnalyticsServiceTests
     public async Task SearchEventsAsync_PropagatesCriteriaToQuery()
     {
         AnalyticsDataQuery capturedQuery = null;
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .Callback((AnalyticsDataQuery query) => capturedQuery = query)
             .ReturnsAsync(CreateSearchResult(("search", To, 3)));
@@ -320,7 +301,7 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task SearchEventsAsync_SourceFails_ThrowsAndCachesTheFailure()
     {
-        _googleDataSourceMock
+        _dataSourceMock
             .SetupSequence(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .ThrowsAsync(new InvalidOperationException($"PermissionDenied on property {PropertyId}"))
             .ReturnsAsync(CreateSearchResult(("search", To, 3)));
@@ -333,13 +314,13 @@ public class AnalyticsServiceTests
         Assert.Contains(StoreId, failure.Message);
         Assert.DoesNotContain(PropertyId, failure.Message);
         Assert.Null(failure.InnerException);
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
     }
 
     [Fact]
     public async Task SearchEventsAsync_FailureCacheExpires_RecoversQuickly()
     {
-        _googleDataSourceMock
+        _dataSourceMock
             .SetupSequence(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .ThrowsAsync(new InvalidOperationException("GA responded 400"))
             .ReturnsAsync(CreateSearchResult(("search", To, 3)));
@@ -350,7 +331,7 @@ public class AnalyticsServiceTests
         var recovered = await service.SearchEventsAsync(CreateSearchCriteria());
 
         Assert.Equal(1, recovered.TotalCount);
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
     }
 
     // Left at the platform's sliding default, the entry evicts on the sliding clock and CacheTtlMinutes means
@@ -358,9 +339,7 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task SearchEventsAsync_ShorterSlidingDefault_DoesNotEvictBeforeTheConfiguredTtl()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateService(
             new AnalyticsDataApiSettings { PropertyId = PropertyId, CacheTtlMinutes = 5 },
             slidingExpiration: TimeSpan.FromMilliseconds(50));
@@ -369,7 +348,7 @@ public class AnalyticsServiceTests
         await Task.Delay(300, TestContext.Current.CancellationToken);
         await service.SearchEventsAsync(CreateSearchCriteria());
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
     }
 
     [Fact]
@@ -403,7 +382,7 @@ public class AnalyticsServiceTests
     public async Task GetEventSummariesAsync_OneReadFails_ThrowsRatherThanReportNever()
     {
         SetupSummaryRead(ModuleConstants.EventNames.Search, total: 3, newest: To);
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.EventNames.Contains(ModuleConstants.EventNames.Login))))
             .ThrowsAsync(new InvalidOperationException("GA responded 429"));
         var service = CreateGoogleConfiguredService();
@@ -416,7 +395,7 @@ public class AnalyticsServiceTests
     public async Task GetEventSummariesAsync_ReadsNarrowly_NeverTheWholeHourlySeries()
     {
         var queries = new ConcurrentQueue<AnalyticsDataQuery>();
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .Callback<AnalyticsDataQuery>(queries.Enqueue)
             .ReturnsAsync(new AnalyticsEventSearchResult());
@@ -447,7 +426,7 @@ public class AnalyticsServiceTests
     {
         var started = 0;
         var allStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .Returns(async () =>
             {
@@ -473,7 +452,7 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task GetEventSummariesAsync_NoNames_FindsTheNamesFirstThenReadsEach()
     {
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q => q.SortBy == ModuleConstants.SortBy.Count)))
             .ReturnsAsync(CreateCountModeResult(("search", 3), ("login", 5)));
         SetupSummaryRead(ModuleConstants.EventNames.Search, total: 3, newest: To);
@@ -495,13 +474,13 @@ public class AnalyticsServiceTests
         await Assert.ThrowsAsync<AnalyticsException>(() =>
             service.GetEventSummariesAsync(CreateSummaryCriteria(ModuleConstants.EventNames.Login)));
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Never);
     }
 
     [Fact]
     public async Task GetEventSummariesAsync_SourceFails_ThrowsAndCachesTheFailure()
     {
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .ThrowsAsync(new InvalidOperationException("GA responded 400"));
         var service = CreateGoogleConfiguredService();
@@ -511,7 +490,7 @@ public class AnalyticsServiceTests
         await Assert.ThrowsAsync<AnalyticsException>(() =>
             service.GetEventSummariesAsync(CreateSummaryCriteria(ModuleConstants.EventNames.Login)));
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
     }
 
     private AnalyticsService CreateService(
@@ -538,8 +517,8 @@ public class AnalyticsServiceTests
         var logger = new Mock<ILogger<AnalyticsService>>().Object;
 
         return failureCacheTtl == null
-            ? new AnalyticsService(_settingsResolverMock.Object, platformMemoryCache, _googleDataSourceMock.Object, logger)
-            : new ShortFailureTtlAnalyticsService(failureCacheTtl.Value, _settingsResolverMock.Object, platformMemoryCache, _googleDataSourceMock.Object, logger);
+            ? new AnalyticsService(_settingsResolverMock.Object, platformMemoryCache, _dataSourceMock.Object, logger)
+            : new ShortFailureTtlAnalyticsService(failureCacheTtl.Value, _settingsResolverMock.Object, platformMemoryCache, _dataSourceMock.Object, logger);
     }
 
     private AnalyticsService CreateGoogleConfiguredService(TimeSpan? failureCacheTtl = null, bool cacheEnabled = true)
@@ -551,7 +530,7 @@ public class AnalyticsServiceTests
     public async Task SearchEventsAsync_ReadCarriesTheStoresRequestTimeout()
     {
         AnalyticsDataQuery query = null;
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .Callback<AnalyticsDataQuery>(x => query = x)
             .ReturnsAsync(CreateSearchResult(("search", To, 3)));
@@ -566,7 +545,7 @@ public class AnalyticsServiceTests
     public async Task GetEventSummariesAsync_EveryReadCarriesTheStoresRequestTimeout()
     {
         var queries = new ConcurrentQueue<AnalyticsDataQuery>();
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .Callback<AnalyticsDataQuery>(queries.Enqueue)
             .ReturnsAsync(CreateSearchResult(("search", To, 3)));
@@ -582,9 +561,7 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task SearchEventsAsync_CriteriaDifferingOnlyInTimeOfDay_UsesCache()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateGoogleConfiguredService();
 
         var morning = CreateSearchCriteria();
@@ -595,15 +572,13 @@ public class AnalyticsServiceTests
         await service.SearchEventsAsync(morning);
         await service.SearchEventsAsync(evening);
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Once);
     }
 
     [Fact]
     public async Task SearchEventsAsync_NormalizingDates_DoesNotMutateTheCallersCriteria()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateGoogleConfiguredService();
 
         var criteria = CreateSearchCriteria();
@@ -618,9 +593,7 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task SearchEventsAsync_BypassCache_ReadsEveryTime()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateGoogleConfiguredService();
 
         var criteria = CreateSearchCriteria();
@@ -629,13 +602,13 @@ public class AnalyticsServiceTests
         await service.SearchEventsAsync(criteria);
         await service.SearchEventsAsync(criteria);
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
     }
 
     [Fact]
     public async Task SearchEventsAsync_BypassCache_SourceFails_Throws()
     {
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
             .ThrowsAsync(new InvalidOperationException("GA responded 400"));
         var service = CreateGoogleConfiguredService();
@@ -650,29 +623,25 @@ public class AnalyticsServiceTests
     [Fact]
     public async Task SearchEventsAsync_PlatformCachingDisabled_ReadsEveryTime()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateGoogleConfiguredService(cacheEnabled: false);
 
         await service.SearchEventsAsync(CreateSearchCriteria());
         await service.SearchEventsAsync(CreateSearchCriteria());
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
     }
 
     [Fact]
     public async Task SearchEventsAsync_CacheTtlZero_ReadsEveryTime()
     {
-        _googleDataSourceMock
-            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
-            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+        SetupRows();
         var service = CreateService(new AnalyticsDataApiSettings { PropertyId = PropertyId, CacheTtlMinutes = 0 });
 
         await service.SearchEventsAsync(CreateSearchCriteria());
         await service.SearchEventsAsync(CreateSearchCriteria());
 
-        _googleDataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+        _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
     }
 
     private static AnalyticsEventSearchCriteria CreateSearchCriteria(string organizationId = null)
@@ -709,7 +678,7 @@ public class AnalyticsServiceTests
     // A summary's per-name read: Google's total over every bucket, and only the newest bucket as a row.
     private void SetupSummaryRead(string eventName, int total, DateTime? newest)
     {
-        _googleDataSourceMock
+        _dataSourceMock
             .Setup(x => x.GetRowsAsync(It.Is<AnalyticsDataQuery>(q =>
                 q.SortBy == ModuleConstants.SortBy.Date && q.EventNames.Contains(eventName))))
             .ReturnsAsync(new AnalyticsEventSearchResult
@@ -745,6 +714,13 @@ public class AnalyticsServiceTests
         };
     }
 
+    private void SetupRows()
+    {
+        _dataSourceMock
+            .Setup(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()))
+            .ReturnsAsync(CreateSearchResult(("search", To, 3)));
+    }
+
     private sealed class ShortFailureTtlAnalyticsService : AnalyticsService
     {
         private readonly TimeSpan _failureCacheTtl;
@@ -753,9 +729,9 @@ public class AnalyticsServiceTests
             TimeSpan failureCacheTtl,
             IAnalyticsSettingsResolver settingsResolver,
             IPlatformMemoryCache platformMemoryCache,
-            GoogleAnalyticsDataSource googleAnalyticsDataSource,
+            IAnalyticsDataSource dataSource,
             ILogger<AnalyticsService> logger)
-            : base(settingsResolver, platformMemoryCache, googleAnalyticsDataSource, logger)
+            : base(settingsResolver, platformMemoryCache, dataSource, logger)
         {
             _failureCacheTtl = failureCacheTtl;
         }

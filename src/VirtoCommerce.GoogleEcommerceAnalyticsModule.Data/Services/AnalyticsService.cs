@@ -55,17 +55,7 @@ public class AnalyticsService : IAnalyticsService
     // has not answered the question, so it throws — an outage must not read as "not configured".
     public virtual async Task<bool> IsConfiguredAsync(string storeId)
     {
-        AnalyticsDataApiSettings settings;
-
-        try
-        {
-            settings = await _settingsResolver.ResolveAsync(storeId);
-        }
-        catch (Exception ex)
-        {
-            LogFailure(ConfigurationOperation, storeId, ex);
-            throw CreateReadException(ConfigurationOperation, storeId);
-        }
+        var settings = await ResolveOrThrowAsync(ConfigurationOperation, storeId);
 
         return settings.IsConfigured;
     }
@@ -121,13 +111,7 @@ public class AnalyticsService : IAnalyticsService
         // Only a search carries extra dimension names; a summary can still reach the item scope through a filter.
         var dimensionNames = (criteria as AnalyticsEventSearchCriteria)?.DimensionNames;
 
-        if (criteria.EventNames?.Count > 1 &&
-            AnalyticsFilterBuilder.HasItemDimensions(dimensionNames, criteria.DimensionFilters))
-        {
-            throw new ArgumentException(
-                "An item-scoped read cannot be narrowed to more than one event name: its rows carry no event name to tell them apart.",
-                nameof(criteria));
-        }
+        AnalyticsFilterBuilder.ValidateItemScope(criteria.EventNames, dimensionNames, criteria.DimensionFilters, nameof(criteria));
     }
 
     protected virtual async Task<T> GetOrCreateAsync<T>(
@@ -160,17 +144,7 @@ public class AnalyticsService : IAnalyticsService
 
     protected virtual async Task<AnalyticsDataApiSettings> ResolveSettingsAsync(string operation, string storeId)
     {
-        AnalyticsDataApiSettings settings;
-
-        try
-        {
-            settings = await _settingsResolver.ResolveAsync(storeId);
-        }
-        catch (Exception ex)
-        {
-            LogFailure(operation, storeId, ex);
-            throw CreateReadException(operation, storeId);
-        }
+        var settings = await ResolveOrThrowAsync(operation, storeId);
 
         if (!settings.IsConfigured)
         {
@@ -210,6 +184,19 @@ public class AnalyticsService : IAnalyticsService
     protected virtual AnalyticsException CreateReadException(string operation, string storeId)
     {
         return new AnalyticsException($"Google Analytics {operation} failed{DescribeStore(storeId)}.");
+    }
+
+    private async Task<AnalyticsDataApiSettings> ResolveOrThrowAsync(string operation, string storeId)
+    {
+        try
+        {
+            return await _settingsResolver.ResolveAsync(storeId);
+        }
+        catch (Exception ex)
+        {
+            LogFailure(operation, storeId, ex);
+            throw CreateReadException(operation, storeId);
+        }
     }
 
     // An absent store id is a legitimate unnarrowed read, not a missing value, so it must not read as "store ''".
@@ -275,7 +262,7 @@ public class AnalyticsService : IAnalyticsService
         return rows.Events
             .Select(x => x.EventName)
             .Where(x => !string.IsNullOrEmpty(x))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .DistinctIgnoreCase()
             .ToList();
     }
 
@@ -295,9 +282,7 @@ public class AnalyticsService : IAnalyticsService
         var result = AbstractTypeFactory<AnalyticsEventSummary>.TryCreateInstance();
         result.EventName = eventName;
         result.TotalCount = rows.TotalEventCount;
-        result.LastOccurredAt = result.TotalCount > 0
-            ? rows.Events.Where(x => x.EventName.EqualsIgnoreCase(eventName)).Max(x => x.OccurredAt)
-            : null;
+        result.LastOccurredAt = result.TotalCount > 0 ? rows.Events.FirstOrDefault()?.OccurredAt : null;
 
         return result;
     }
