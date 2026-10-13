@@ -151,7 +151,9 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
                 {
                     Name = "GoogleAnalytics4.DataApi.CacheTtlMinutes",
                     GroupName = "Google Analytics 4",
-                    ValueType = SettingValueType.PositiveInteger,
+                    // Integer, not PositiveInteger: 0 turns the cache off, and the platform refuses to save 0 for a
+                    // PositiveInteger setting.
+                    ValueType = SettingValueType.Integer,
                     DefaultValue = DefaultCacheTtlMinutes
                 };
 

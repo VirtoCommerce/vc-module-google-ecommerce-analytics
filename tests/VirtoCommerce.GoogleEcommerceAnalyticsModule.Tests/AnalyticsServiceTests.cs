@@ -15,6 +15,7 @@ using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Models;
 using VirtoCommerce.GoogleEcommerceAnalyticsModule.Data.Services;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
+using VirtoCommerce.Platform.Core.Settings;
 using Xunit;
 
 namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Tests;
@@ -642,6 +643,13 @@ public class AnalyticsServiceTests
         await service.SearchEventsAsync(CreateSearchCriteria());
 
         _dataSourceMock.Verify(x => x.GetRowsAsync(It.IsAny<AnalyticsDataQuery>()), Times.Exactly(2));
+    }
+
+    // The read above is only reachable if 0 can be saved: the platform refuses 0 for a PositiveInteger setting.
+    [Fact]
+    public void CacheTtlMinutesSetting_AcceptsZero()
+    {
+        Assert.Equal(SettingValueType.Integer, ModuleConstants.Settings.DataApi.CacheTtlMinutes.ValueType);
     }
 
     private static AnalyticsEventSearchCriteria CreateSearchCriteria(string organizationId = null)
