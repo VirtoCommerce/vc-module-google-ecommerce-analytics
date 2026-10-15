@@ -32,11 +32,10 @@ namespace VirtoCommerce.GoogleEcommerceAnalyticsModule.Core
 
             public const string ContactId = "contact_id";
             public const string OrganizationId = "organization_id";
-            public const string OrganizationName = "organization_name";
             public const string IsSalesRep = "is_sales_rep";
             public const string SessionKind = "session_kind";
 
-            public static string[] AllNames { get; } = [ContactId, OrganizationId, OrganizationName, IsSalesRep, SessionKind];
+            public static string[] AllNames { get; } = [ContactId, OrganizationId, IsSalesRep, SessionKind];
         }
 
         public static class Dimensions
