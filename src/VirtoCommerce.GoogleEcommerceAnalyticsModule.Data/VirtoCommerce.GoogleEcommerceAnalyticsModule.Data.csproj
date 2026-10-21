@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <noWarn>1591</noWarn>
+    <!-- NU5104: Google ships the GA4 Data API client (Google.Analytics.Data.V1Beta) only as prerelease. -->
+    <noWarn>NU5104,1591</noWarn>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
